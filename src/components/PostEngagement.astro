@@ -1,0 +1,72 @@
+---
+import ReactionPills from './ReactionPills.astro';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+---
+
+<section
+  id="post-engagement"
+  data-slug={slug}
+  class="mt-8 pt-5 border-t border-slate-200/70 dark:border-white/10 flex flex-wrap items-center justify-between gap-4"
+>
+  <ReactionPills statId={slug} />
+
+  <div class="flex items-center gap-1.5 text-xs text-[#6c7883] tabular-nums">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+    <span id="engagement-views">—</span>
+  </div>
+</section>
+
+<script>
+  import { db, isFirebaseConfigured } from '../lib/firebase';
+  import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+
+  async function initEngagement() {
+    const section = document.getElementById('post-engagement');
+    const slug = section?.getAttribute('data-slug');
+    const viewsEl = document.getElementById('engagement-views');
+    const topViewsEl = document.getElementById('post-views');
+
+    if (!slug || !isFirebaseConfigured || !db) return;
+
+    const statsRef = doc(db, 'posts_stats', slug);
+    const viewedKey = `viewed:${slug}`;
+
+    try {
+      const snap = await getDoc(statsRef);
+      let views = snap.exists() ? (snap.data().views ?? 0) : 0;
+
+      if (!sessionStorage.getItem(viewedKey)) {
+        if (!snap.exists()) {
+          await setDoc(statsRef, {
+            views: 1,
+            updatedAt: serverTimestamp(),
+          });
+          views = 1;
+        } else {
+          await updateDoc(statsRef, {
+            views: increment(1),
+            updatedAt: serverTimestamp(),
+          });
+          views += 1;
+        }
+        sessionStorage.setItem(viewedKey, '1');
+      }
+
+      if (viewsEl) viewsEl.textContent = String(views);
+      if (topViewsEl) topViewsEl.textContent = String(views);
+    } catch (err) {
+      console.warn('[Telemetry] View counter skipped:', err);
+    }
+  }
+
+  initEngagement();
+  document.addEventListener('astro:page-load', initEngagement);
+</script>

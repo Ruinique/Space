@@ -1,0 +1,13 @@
+{
+  "name": "telegram-bridge",
+  "version": "1.0.0",
+  "description": "Telegram Channel to Firestore /moments real-time webhook bridge",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.10.0",
+    "@google-cloud/functions-framework": "^3.4.0"
+  }
+}

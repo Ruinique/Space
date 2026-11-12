@@ -1,0 +1,369 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Instant View — Ruiyi Zhan" subtitle="Instant View · Long-Form Essay">
+  <!-- Telegram Blue Reading Progress Bar -->
+  <div class="fixed top-14 left-0 right-0 z-30 h-0.5 bg-transparent pointer-events-none">
+    <div
+      id="read-progress"
+      class="h-full w-0 bg-[#2481cc] dark:bg-[#3ea6ff] transition-[width] duration-75"
+    ></div>
+  </div>
+
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-4 px-1 text-xs text-[#6c7883]">
+      <a
+        href="/"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors"
+      >
+        <span>←</span>
+        <span>Back to Channel</span>
+      </a>
+      <div class="flex items-center gap-2 tabular-nums">
+        <span id="read-date">—</span>
+        <span>·</span>
+        <span>👁️ <strong id="read-views" class="font-medium">—</strong></span>
+      </div>
+    </div>
+
+    <article
+      id="read-card"
+      class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-5 sm:p-8"
+    >
+      <div id="read-loading" class="py-12 text-center text-sm text-[#6c7883]">
+        Loading article...
+      </div>
+
+      <div id="read-content-wrap" class="hidden">
+        <header class="mb-6 pb-5 border-b border-slate-200/70 dark:border-white/10">
+          <div id="read-tags" class="flex flex-wrap gap-1.5 mb-3"></div>
+          <h1
+            id="read-title"
+            class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-[#f5f5f5] leading-snug"
+          ></h1>
+          <p id="read-subtitle" class="text-sm sm:text-base text-[#6c7883] mt-2 hidden"></p>
+        </header>
+
+        <div id="read-body" class="prose prose-slate dark:prose-invert prose-tg max-w-none"></div>
+
+        <section
+          class="mt-8 pt-5 border-t border-slate-200/70 dark:border-white/10 flex flex-wrap items-center justify-between gap-4"
+        >
+          <div id="read-reactions-mount"></div>
+          <div class="flex items-center gap-1.5 text-xs text-[#6c7883] tabular-nums">
+            <span>👁️</span>
+            <span id="read-bottom-views">—</span>
+          </div>
+        </section>
+      </div>
+    </article>
+
+    <!-- Discussion Group Comments -->
+    <section id="read-comments-mount" class="mt-8 hidden">
+      <div class="flex items-center justify-between mb-4 px-1">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
+          <span
+            id="rc-count"
+            class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]"
+          >
+            0
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <button
+            id="rc-google-btn"
+            type="button"
+            class="px-3 py-1 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] cursor-pointer"
+          >
+            Sign in with Google
+          </button>
+          <button
+            id="rc-logout-btn"
+            type="button"
+            class="hidden px-3 py-1 rounded-full bg-white dark:bg-[#182533] text-[#6c7883] cursor-pointer"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <div id="rc-list" class="space-y-3 mb-5"></div>
+
+      <form
+        id="rc-form"
+        class="hidden items-center gap-2 p-1.5 pl-4 rounded-full bg-white dark:bg-[#182533] shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/60 dark:border-white/10"
+      >
+        <input
+          id="rc-input"
+          type="text"
+          maxlength="499"
+          placeholder="Write a comment..."
+          class="flex-1 bg-transparent text-sm text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="w-9 h-9 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] flex items-center justify-center shrink-0 cursor-pointer"
+          aria-label="Send"
+        >
+          <svg class="w-4 h-4 translate-x-[-1px]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
+        </button>
+      </form>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    db,
+    isFirebaseConfigured,
+    ADMIN_EMAIL,
+    signInWithGoogle,
+    signOutUser,
+    onAuthChange,
+  } from '../lib/firebase';
+  import { renderAcademicMarkdown } from '../lib/markdown';
+  import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
+  import {
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    increment,
+    serverTimestamp,
+    collection,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot,
+    addDoc,
+    deleteDoc,
+  } from 'firebase/firestore';
+  import type { User } from 'firebase/auth';
+
+  let unsubReadComments: (() => void) | null = null;
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function initReadPage() {
+    unsubReadComments?.();
+    unsubReadComments = null;
+
+    const loadingEl = document.getElementById('read-loading');
+    const wrapEl = document.getElementById('read-content-wrap');
+    if (!loadingEl || !wrapEl) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug') || '';
+
+    if (!slug || !isFirebaseConfigured || !db) {
+      loadingEl.textContent = 'Article not found.';
+      return;
+    }
+
+    try {
+      const snap = await getDoc(doc(db, 'articles', slug));
+      if (!snap.exists()) {
+        loadingEl.textContent = 'Article not found.';
+        return;
+      }
+
+      const data = snap.data();
+      document.title = `${data.title} — Instant View`;
+
+      const titleEl = document.getElementById('read-title');
+      const subtitleEl = document.getElementById('read-subtitle');
+      const tagsEl = document.getElementById('read-tags');
+      const bodyEl = document.getElementById('read-body');
+      const dateEl = document.getElementById('read-date');
+      const reactionsMount = document.getElementById('read-reactions-mount');
+
+      if (titleEl) titleEl.textContent = data.title || 'Untitled';
+      if (subtitleEl && data.subtitle) {
+        subtitleEl.textContent = data.subtitle;
+        subtitleEl.classList.remove('hidden');
+      }
+      if (tagsEl) {
+        const tags: string[] = Array.isArray(data.tags) ? data.tags : [];
+        tagsEl.innerHTML = tags
+          .map(
+            (t) =>
+              `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]">#${escapeHtml(t)}</span>`
+          )
+          .join('');
+      }
+      if (dateEl && data.createdAt?.toDate) {
+        const dt = data.createdAt.toDate();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        dateEl.textContent = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+      }
+      if (bodyEl) {
+        bodyEl.innerHTML = renderAcademicMarkdown(data.content || '');
+      }
+      if (reactionsMount) {
+        reactionsMount.innerHTML = renderReactionPillsHtml(slug);
+        const rx = reactionsMount.querySelector<HTMLElement>('.tg-reactions');
+        if (rx) hydrateReactionContainer(rx);
+      }
+
+      loadingEl.classList.add('hidden');
+      wrapEl.classList.remove('hidden');
+
+      // Telemetry view count
+      const statsRef = doc(db, 'posts_stats', slug);
+      const viewedKey = `viewed:${slug}`;
+      const statSnap = await getDoc(statsRef);
+      let views = statSnap.exists() ? (statSnap.data().views ?? 0) : 0;
+      if (!sessionStorage.getItem(viewedKey)) {
+        if (!statSnap.exists()) {
+          await setDoc(statsRef, { views: 1, updatedAt: serverTimestamp() });
+          views = 1;
+        } else {
+          await updateDoc(statsRef, { views: increment(1), updatedAt: serverTimestamp() });
+          views += 1;
+        }
+        sessionStorage.setItem(viewedKey, '1');
+      }
+      const topViews = document.getElementById('read-views');
+      const botViews = document.getElementById('read-bottom-views');
+      if (topViews) topViews.textContent = String(views);
+      if (botViews) botViews.textContent = String(views);
+
+      // Reading progress
+      const progressEl = document.getElementById('read-progress');
+      const updateProgress = () => {
+        if (!progressEl) return;
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        const pct = docH > 0 ? Math.min(100, Math.max(0, (window.scrollY / docH) * 100)) : 0;
+        progressEl.style.width = `${pct}%`;
+      };
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+
+      // Comments
+      const commentsMount = document.getElementById('read-comments-mount');
+      const listEl = document.getElementById('rc-list');
+      const countEl = document.getElementById('rc-count');
+      const googleBtn = document.getElementById('rc-google-btn');
+      const logoutBtn = document.getElementById('rc-logout-btn');
+      const form = document.getElementById('rc-form') as HTMLFormElement | null;
+      const input = document.getElementById('rc-input') as HTMLInputElement | null;
+
+      commentsMount?.classList.remove('hidden');
+      let currentUser: User | null = null;
+      let latestDocs: any[] = [];
+
+      const renderComments = (docs: any[]) => {
+        if (!listEl || !countEl) return;
+        countEl.textContent = String(docs.length);
+        if (docs.length === 0) {
+          listEl.innerHTML =
+            '<div class="text-center py-6 text-xs text-[#6c7883]">No comments yet.</div>';
+          return;
+        }
+        listEl.innerHTML = [...docs]
+          .reverse()
+          .map((item) => {
+            const d = item.data;
+            const isSelf = currentUser && currentUser.uid === d.uid;
+            const canDel = currentUser && (isSelf || currentUser.email === ADMIN_EMAIL);
+            const dt = d.createdAt?.toDate ? d.createdAt.toDate() : new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const timeStr = `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+            return `
+              <div class="flex items-end gap-2 ${isSelf ? 'justify-end' : 'justify-start'}">
+                <div class="max-w-[82%] px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                  isSelf
+                    ? 'bg-[#effdde] dark:bg-[#2b5278] rounded-2xl rounded-br-sm'
+                    : 'bg-white dark:bg-[#182533] rounded-2xl rounded-bl-sm'
+                }">
+                  ${
+                    !isSelf
+                      ? `<div class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff] mb-0.5">${escapeHtml(d.authorName || 'Reader')}</div>`
+                      : ''
+                  }
+                  <p class="text-sm leading-relaxed text-slate-900 dark:text-[#f5f5f5] whitespace-pre-wrap">${escapeHtml(d.content || '')}</p>
+                  <div class="flex items-center justify-end gap-2 mt-1 text-[11px] text-[#6c7883]">
+                    ${
+                      canDel
+                        ? `<button data-del-id="${item.id}" class="rc-del-btn hover:text-red-500 cursor-pointer">Delete</button>`
+                        : ''
+                    }
+                    <span>${timeStr}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+        listEl.querySelectorAll('.rc-del-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-del-id');
+            if (id && db) await deleteDoc(doc(db, 'comments', id));
+          });
+        });
+      };
+
+      onAuthChange((user) => {
+        currentUser = user;
+        if (user) {
+          googleBtn?.classList.add('hidden');
+          logoutBtn?.classList.remove('hidden');
+          form?.classList.remove('hidden');
+          form?.classList.add('flex');
+        } else {
+          googleBtn?.classList.remove('hidden');
+          logoutBtn?.classList.add('hidden');
+          form?.classList.add('hidden');
+          form?.classList.remove('flex');
+        }
+        renderComments(latestDocs);
+      });
+
+      googleBtn?.addEventListener('click', () => signInWithGoogle().catch(console.error));
+      logoutBtn?.addEventListener('click', () => signOutUser().catch(console.error));
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || !db || !input) return;
+        const content = input.value.trim();
+        if (!content || content.length >= 500) return;
+        input.value = '';
+        await addDoc(collection(db, 'comments'), {
+          slug,
+          uid: currentUser.uid,
+          authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+          authorPhoto: currentUser.photoURL || '',
+          content,
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      const q = query(
+        collection(db, 'comments'),
+        where('slug', '==', slug),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+      unsubReadComments = onSnapshot(q, (s) => {
+        latestDocs = s.docs.map((d) => ({ id: d.id, data: d.data() }));
+        renderComments(latestDocs);
+      });
+    } catch (err) {
+      console.error(err);
+      loadingEl.textContent = 'Failed to load article.';
+    }
+  }
+
+  initReadPage();
+  document.addEventListener('astro:page-load', initReadPage);
+</script>

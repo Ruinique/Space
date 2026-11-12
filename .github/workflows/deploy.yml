@@ -1,0 +1,51 @@
+name: Build & Deploy to Firebase
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro static site & Pagefind index
+        env:
+          PUBLIC_FIREBASE_API_KEY: ${{ secrets.PUBLIC_FIREBASE_API_KEY }}
+          PUBLIC_FIREBASE_AUTH_DOMAIN: project-d5956722-3ab5-4c0f-be0.firebaseapp.com
+          PUBLIC_FIREBASE_PROJECT_ID: project-d5956722-3ab5-4c0f-be0
+          PUBLIC_FIREBASE_STORAGE_BUCKET: project-d5956722-3ab5-4c0f-be0.firebasestorage.app
+          PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          PUBLIC_FIREBASE_APP_ID: ${{ secrets.PUBLIC_FIREBASE_APP_ID }}
+          PUBLIC_ADMIN_EMAIL: ruiyizhan2003@gmail.com
+        run: npm run build
+
+      - name: Authenticate to Google Cloud (Keyless WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/622762685869/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@project-d5956722-3ab5-4c0f-be0.iam.gserviceaccount.com
+
+      - name: Deploy to Firebase Hosting & Firestore
+        run: |
+          npx --yes firebase-tools deploy \
+            --only hosting,firestore:rules,firestore:indexes \
+            --project project-d5956722-3ab5-4c0f-be0 \
+            --non-interactive

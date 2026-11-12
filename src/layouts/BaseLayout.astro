@@ -1,0 +1,352 @@
+---
+import '../styles/global.css';
+import 'katex/dist/katex.min.css';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  description?: string;
+  subtitle?: string;
+}
+
+const {
+  title,
+  description = 'Ruiyi Zhan (@Ruinique) — High-Performance Numerical Linear Algebra & GPU Systems.',
+  subtitle = '@Ruinique · UESTC HPC & Systems',
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <ClientRouter />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script is:inline>
+      (function () {
+        function applyTheme() {
+          const stored = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+        applyTheme();
+        document.addEventListener('astro:after-swap', applyTheme);
+      })();
+    </script>
+  </head>
+
+  <body class="min-h-screen flex flex-col bg-[#f1f4f8] text-slate-900 dark:bg-[#0e1621] dark:text-[#f5f5f5]">
+    <!-- Telegram Channel Frosted-Glass Header -->
+    <header
+      class="sticky top-0 z-40 backdrop-blur-xl backdrop-saturate-150 bg-white/80 dark:bg-[#17212b]/85 border-b border-slate-200/70 dark:border-white/10"
+    >
+      <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <!-- Left: Avatar with Breathing Online Dot + Channel Title & Verified Badge -->
+        <a href="/" class="flex items-center gap-3 min-w-0 group">
+          <div class="relative shrink-0">
+            <img
+              src="https://avatars.githubusercontent.com/u/91458671?v=4"
+              alt="Ruiyi Zhan"
+              class="w-9 h-9 rounded-full object-cover ring-1 ring-black/10 dark:ring-white/15"
+            />
+            <span
+              class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#17212b] animate-pulse"
+              title="Online"
+            ></span>
+          </div>
+
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-semibold text-[15px] leading-tight truncate text-slate-900 dark:text-[#f5f5f5] group-hover:text-[#2481cc] dark:group-hover:text-[#3ea6ff] transition-colors">
+                Ruiyi Zhan
+              </span>
+              <!-- Telegram Verified Blue Badge -->
+              <svg
+                class="w-4 h-4 shrink-0 text-[#2481cc] dark:text-[#3ea6ff]"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-label="Verified"
+              >
+                <path
+                  d="M12 2l2.39 1.72 2.94-.35 1.15 2.73 2.58 1.44-.36 2.94L22 12l-1.3 2.52.36 2.94-2.58 1.44-1.15 2.73-2.94-.35L12 22l-2.39-1.72-2.94.35-1.15-2.73-2.58-1.44.36-2.94L2 12l1.3-2.52-.36-2.94 2.58-1.44 1.15-2.73 2.94.35L12 2zm-1.1 13.4l5.2-5.2-1.4-1.4-3.8 3.8-1.7-1.7-1.4 1.4 3.1 3.1z"
+                />
+              </svg>
+            </div>
+            <p class="text-[11px] text-[#6c7883] truncate">{subtitle}</p>
+          </div>
+        </a>
+
+        <!-- Right: Channel Tabs + Search + Circular Reveal Theme Toggle -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <nav class="flex items-center gap-1 text-xs font-medium mr-1">
+            <a
+              href="/"
+              class:list={[
+                'px-2.5 py-1.5 rounded-full transition-colors',
+                currentPath === '/'
+                  ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+                  : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
+              ]}
+            >
+              Channel
+            </a>
+            <a
+              href="/moments"
+              class:list={[
+                'px-2.5 py-1.5 rounded-full transition-colors',
+                currentPath.startsWith('/moments')
+                  ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+                  : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
+              ]}
+            >
+              Moments
+            </a>
+            <a
+              href="/admin"
+              class:list={[
+                'px-2.5 py-1.5 rounded-full transition-colors',
+                currentPath.startsWith('/admin')
+                  ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+                  : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
+              ]}
+            >
+              Admin
+            </a>
+          </nav>
+
+          <button
+            id="open-search-btn"
+            type="button"
+            class="p-2 rounded-full text-[#6c7883] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+            title="Search (⌘K)"
+            aria-label="Search"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" stroke-linecap="round" />
+            </svg>
+          </button>
+
+          <button
+            id="theme-toggle-btn"
+            type="button"
+            class="p-2 rounded-full text-[#6c7883] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+            aria-label="Toggle Day/Night theme"
+          >
+            <!-- Sun (shown in dark mode) -->
+            <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" stroke-linecap="round" />
+            </svg>
+            <!-- Moon (shown in light mode) -->
+            <svg class="w-4 h-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <!-- Minimal Telegram Channel Footer -->
+    <footer class="py-8 text-center text-xs text-[#6c7883]">
+      <div class="max-w-3xl mx-auto px-4 flex items-center justify-center gap-2">
+        <span>Ruiyi Zhan · @Ruinique</span>
+        <span>·</span>
+        <span>ruinique.com</span>
+      </div>
+    </footer>
+
+    <!-- Telegram Search Modal (Pagefind) -->
+    <div
+      id="search-modal"
+      class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-xs px-4 pt-20"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search channel"
+    >
+      <div class="max-w-lg mx-auto rounded-2xl overflow-hidden bg-white/95 dark:bg-[#17212b]/95 backdrop-blur-xl shadow-2xl border border-slate-200/70 dark:border-white/10">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200/70 dark:border-white/10">
+          <svg class="w-4 h-4 text-[#2481cc] dark:text-[#3ea6ff] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" stroke-linecap="round" />
+          </svg>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search channel messages..."
+            class="w-full bg-transparent text-sm text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
+          />
+          <button
+            id="close-search-btn"
+            type="button"
+            class="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-[#6c7883] cursor-pointer"
+          >
+            ESC
+          </button>
+        </div>
+        <div id="search-results" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
+          <div class="px-4 py-6 text-xs text-[#6c7883] text-center">
+            Type to search static channel archive...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let pagefind: any = null;
+
+      async function loadPagefind() {
+        if (pagefind) return pagefind;
+        try {
+          const pagefindPath = '/pagefind/pagefind.js';
+          // @ts-ignore
+          pagefind = await import(/* @vite-ignore */ pagefindPath);
+          await pagefind.init();
+          return pagefind;
+        } catch {
+          return null;
+        }
+      }
+
+      function setupLayoutControls() {
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        themeBtn?.addEventListener('click', (e) => {
+          const isDark = document.documentElement.classList.contains('dark');
+          const nextDark = !isDark;
+
+          const toggleDom = () => {
+            document.documentElement.classList.toggle('dark', nextDark);
+            localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+          };
+
+          // @ts-ignore - View Transitions API for Telegram Circular Reveal
+          if (!document.startViewTransition) {
+            toggleDom();
+            return;
+          }
+
+          const x = e.clientX || window.innerWidth - 32;
+          const y = e.clientY || 28;
+          const endRadius = Math.hypot(
+            Math.max(x, window.innerWidth - x),
+            Math.max(y, window.innerHeight - y)
+          );
+
+          // @ts-ignore
+          const transition = document.startViewTransition(toggleDom);
+          transition.ready.then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 420,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                pseudoElement: '::view-transition-new(root)',
+              }
+            );
+          });
+        });
+
+        const modal = document.getElementById('search-modal');
+        const openBtn = document.getElementById('open-search-btn');
+        const closeBtn = document.getElementById('close-search-btn');
+        const input = document.getElementById('search-input') as HTMLInputElement | null;
+        const resultsEl = document.getElementById('search-results');
+
+        const openSearch = () => {
+          modal?.classList.remove('hidden');
+          setTimeout(() => input?.focus(), 20);
+          loadPagefind();
+        };
+
+        const closeSearch = () => modal?.classList.add('hidden');
+
+        openBtn?.addEventListener('click', openSearch);
+        closeBtn?.addEventListener('click', closeSearch);
+        modal?.addEventListener('click', (e) => {
+          if (e.target === modal) closeSearch();
+        });
+
+        let timer: ReturnType<typeof setTimeout>;
+        input?.addEventListener('input', () => {
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            const q = input.value.trim();
+            if (!resultsEl) return;
+            if (!q) {
+              resultsEl.innerHTML =
+                '<div class="px-4 py-6 text-xs text-[#6c7883] text-center">Type to search static channel archive...</div>';
+              return;
+            }
+            const pf = await loadPagefind();
+            if (!pf) {
+              resultsEl.innerHTML =
+                '<div class="px-4 py-6 text-xs text-[#6c7883] text-center">Search index available after production build.</div>';
+              return;
+            }
+            const res = await pf.search(q);
+            if (!res.results.length) {
+              resultsEl.innerHTML =
+                '<div class="px-4 py-6 text-xs text-[#6c7883] text-center">No matching messages.</div>';
+              return;
+            }
+            const items = await Promise.all(res.results.slice(0, 8).map((r: any) => r.data()));
+            resultsEl.innerHTML = items
+              .map(
+                (item: any) => `
+                <a href="${item.url}" class="block px-4 py-3 hover:bg-[#2481cc]/8 dark:hover:bg-[#3ea6ff]/10 transition-colors">
+                  <div class="text-sm font-medium text-slate-900 dark:text-[#f5f5f5]">${item.meta?.title || item.url}</div>
+                  <div class="text-xs text-[#6c7883] mt-1 line-clamp-2">${item.excerpt}</div>
+                </a>
+              `
+              )
+              .join('');
+          }, 120);
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        const modal = document.getElementById('search-modal');
+        const input = document.getElementById('search-input') as HTMLInputElement | null;
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (modal?.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            setTimeout(() => input?.focus(), 20);
+            loadPagefind();
+          } else {
+            modal?.classList.add('hidden');
+          }
+        } else if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+          modal.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('astro:page-load', setupLayoutControls);
+    </script>
+  </body>
+</html>

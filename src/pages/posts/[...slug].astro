@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostEngagement from '../../components/PostEngagement.astro';
+import CommentsSection from '../../components/CommentsSection.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const pubDateStr = post.data.pubDate.toISOString().slice(0, 10);
+---
+
+<BaseLayout
+  title={`${post.data.title} — Instant View`}
+  description={post.data.description}
+  subtitle={`Instant View · ${post.data.category}`}
+>
+  <!-- Telegram Blue Reading Progress Bar -->
+  <div class="fixed top-14 left-0 right-0 z-30 h-0.5 bg-transparent pointer-events-none">
+    <div
+      id="reading-progress"
+      class="h-full w-0 bg-[#2481cc] dark:bg-[#3ea6ff] transition-[width] duration-75"
+    ></div>
+  </div>
+
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <!-- Top Instant View Action Bar -->
+    <div class="flex items-center justify-between mb-4 px-1 text-xs text-[#6c7883]">
+      <a
+        href="/"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors"
+      >
+        <span>←</span>
+        <span>Back to Channel</span>
+      </a>
+      <div class="flex items-center gap-2 tabular-nums">
+        <span>{pubDateStr}</span>
+        <span>·</span>
+        <span>👁️ <strong id="post-views" class="font-medium">—</strong></span>
+      </div>
+    </div>
+
+    <!-- Telegram Instant View Card -->
+    <article
+      transition:name={`card-${post.id}`}
+      class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-5 sm:p-8"
+      data-pagefind-body
+    >
+      <header class="mb-6 pb-5 border-b border-slate-200/70 dark:border-white/10">
+        <div class="flex flex-wrap gap-1.5 mb-3">
+          {
+            post.data.tags.map((tag) => (
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]">
+                #{tag}
+              </span>
+            ))
+          }
+        </div>
+        <h1
+          transition:name={`title-${post.id}`}
+          class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-[#f5f5f5] leading-snug"
+          data-pagefind-meta="title"
+        >
+          {post.data.title}
+        </h1>
+        {
+          post.data.subtitle && (
+            <p class="text-sm sm:text-base text-[#6c7883] mt-2">
+              {post.data.subtitle}
+            </p>
+          )
+        }
+      </header>
+
+      <div class="prose prose-slate dark:prose-invert prose-tg max-w-none">
+        <Content />
+      </div>
+
+      <div data-pagefind-ignore>
+        <PostEngagement slug={post.id} />
+      </div>
+    </article>
+
+    <!-- Discussion Group Comments -->
+    <div data-pagefind-ignore>
+      <CommentsSection slug={post.id} />
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function enhanceInstantView() {
+    // Wrap Shiki code blocks in Telegram native code cards
+    document.querySelectorAll<HTMLPreElement>('pre.astro-code').forEach((pre) => {
+      if (pre.parentElement?.classList.contains('tg-code-wrapper')) return;
+
+      const lang = pre.getAttribute('data-lang') || 'text';
+      const title = pre.getAttribute('data-title');
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tg-code-wrapper';
+
+      const header = document.createElement('div');
+      header.className = 'tg-code-header';
+
+      const label = document.createElement('span');
+      label.textContent = title ? `${title} · ${lang}` : lang.toUpperCase();
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'Copy';
+      copyBtn.className = 'hover:opacity-80 transition-opacity cursor-pointer';
+
+      copyBtn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(pre.innerText || '');
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+        }, 1500);
+      });
+
+      header.appendChild(label);
+      header.appendChild(copyBtn);
+
+      pre.parentNode?.insertBefore(wrapper, pre);
+      wrapper.appendChild(header);
+      wrapper.appendChild(pre);
+    });
+
+    // Reading Progress Bar
+    const progressEl = document.getElementById('reading-progress');
+    const updateProgress = () => {
+      if (!progressEl) return;
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0;
+      progressEl.style.width = `${pct}%`;
+    };
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  }
+
+  enhanceInstantView();
+  document.addEventListener('astro:page-load', enhanceInstantView);
+</script>

@@ -1,0 +1,37 @@
+---
+import { REACTION_SLOTS } from '../lib/reactions';
+
+interface Props {
+  statId: string;
+}
+
+const { statId } = Astro.props;
+---
+
+<div class="tg-reactions flex flex-wrap items-center gap-1.5" data-stat-id={statId}>
+  {
+    REACTION_SLOTS.map((slot) => (
+      <button
+        type="button"
+        data-reaction-key={slot.key}
+        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-transparent bg-slate-100 dark:bg-white/8 text-slate-700 dark:text-slate-200 hover:bg-[#2481cc]/10 dark:hover:bg-[#3ea6ff]/15 transition-colors cursor-pointer select-none"
+      >
+        <span class="rx-emoji leading-none">{slot.emoji}</span>
+        <span class="rx-count tabular-nums text-[11px]">0</span>
+      </button>
+    ))
+  }
+</div>
+
+<script>
+  import { hydrateReactionContainer } from '../lib/reactions';
+
+  function initAllReactions() {
+    document.querySelectorAll<HTMLElement>('.tg-reactions').forEach((el) => {
+      hydrateReactionContainer(el);
+    });
+  }
+
+  initAllReactions();
+  document.addEventListener('astro:page-load', initAllReactions);
+</script>

@@ -1,0 +1,273 @@
+---
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+---
+
+<section id="comments-section" data-slug={slug} class="mt-8">
+  <div class="flex items-center justify-between mb-4 px-1">
+    <div class="flex items-center gap-2">
+      <span class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
+      <span
+        id="comments-count"
+        class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]"
+      >
+        0
+      </span>
+    </div>
+
+    <div id="auth-actions" class="flex items-center gap-2 text-xs">
+      <button
+        id="login-google-btn"
+        type="button"
+        class="px-3 py-1 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+      >
+        Sign in with Google
+      </button>
+      <button
+        id="login-github-btn"
+        type="button"
+        class="px-3 py-1 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+      >
+        GitHub
+      </button>
+      <button
+        id="logout-btn"
+        type="button"
+        class="hidden px-3 py-1 rounded-full bg-white dark:bg-[#182533] text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+      >
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Message Bubbles -->
+  <div id="comments-list" class="space-y-3 mb-5">
+    <div class="text-center py-6 text-xs text-[#6c7883]">Loading discussion...</div>
+  </div>
+
+  <!-- Telegram Floating Pill Composer -->
+  <form
+    id="comment-form"
+    class="hidden items-center gap-2 p-1.5 pl-4 rounded-full bg-white dark:bg-[#182533] shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/60 dark:border-white/10"
+  >
+    <input
+      id="comment-input"
+      type="text"
+      maxlength="499"
+      placeholder="Write a comment..."
+      class="flex-1 bg-transparent text-sm text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
+    />
+    <span id="char-counter" class="text-[11px] text-[#6c7883] tabular-nums hidden sm:inline">0/499</span>
+    <button
+      id="comment-send-btn"
+      type="submit"
+      class="w-9 h-9 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] flex items-center justify-center shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
+      aria-label="Send comment"
+    >
+      <svg id="comment-plane-icon" class="w-4 h-4 translate-x-[-1px]" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+      </svg>
+    </button>
+  </form>
+</section>
+
+<script>
+  import {
+    db,
+    isFirebaseConfigured,
+    ADMIN_EMAIL,
+    signInWithGoogle,
+    signInWithGithub,
+    signOutUser,
+    onAuthChange,
+  } from '../lib/firebase';
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot,
+    addDoc,
+    deleteDoc,
+    doc,
+    serverTimestamp,
+  } from 'firebase/firestore';
+  import type { User } from 'firebase/auth';
+
+  let unsubscribeComments: (() => void) | null = null;
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function initComments() {
+    unsubscribeComments?.();
+    unsubscribeComments = null;
+
+    const section = document.getElementById('comments-section');
+    if (!section) return;
+
+    const slug = section.getAttribute('data-slug') || '';
+    const googleBtn = document.getElementById('login-google-btn');
+    const githubBtn = document.getElementById('login-github-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const form = document.getElementById('comment-form') as HTMLFormElement | null;
+    const input = document.getElementById('comment-input') as HTMLInputElement | null;
+    const charCounter = document.getElementById('char-counter');
+    const planeIcon = document.getElementById('comment-plane-icon');
+    const listEl = document.getElementById('comments-list');
+    const countEl = document.getElementById('comments-count');
+
+    let currentUser: User | null = null;
+    let latestDocs: any[] = [];
+    const seenIds = new Set<string>();
+
+    function renderComments(docs: any[]) {
+      if (!listEl || !countEl) return;
+      countEl.textContent = String(docs.length);
+
+      if (docs.length === 0) {
+        listEl.innerHTML =
+          '<div class="text-center py-6 text-xs text-[#6c7883]">No messages in discussion yet.</div>';
+        return;
+      }
+
+      // Display oldest-to-newest like a Telegram chat thread
+      const ordered = [...docs].reverse();
+      listEl.innerHTML = ordered
+        .map((item) => {
+          const d = item.data;
+          const isSelf = currentUser && currentUser.uid === d.uid;
+          const canDelete =
+            currentUser && (isSelf || currentUser.email === ADMIN_EMAIL);
+          const dt = d.createdAt?.toDate ? d.createdAt.toDate() : new Date();
+          const timeStr = dt.toTimeString().slice(0, 5);
+          const isNew = !seenIds.has(item.id);
+          seenIds.add(item.id);
+
+          const avatarHtml = d.authorPhoto
+            ? `<img src="${escapeHtml(d.authorPhoto)}" alt="" class="w-8 h-8 rounded-full object-cover shrink-0 self-end" />`
+            : `<div class="w-8 h-8 rounded-full bg-[#2481cc]/20 text-[#2481cc] dark:text-[#3ea6ff] flex items-center justify-center text-xs font-semibold shrink-0 self-end">${escapeHtml((d.authorName || 'R')[0].toUpperCase())}</div>`;
+
+          return `
+            <div class="flex items-end gap-2 ${isSelf ? 'justify-end' : 'justify-start'} ${isNew ? 'animate-tg-bubble' : ''}">
+              ${!isSelf ? avatarHtml : ''}
+              <div class="max-w-[82%] px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                isSelf
+                  ? 'bg-[#effdde] dark:bg-[#2b5278] rounded-2xl rounded-br-sm'
+                  : 'bg-white dark:bg-[#182533] rounded-2xl rounded-bl-sm'
+              }">
+                ${
+                  !isSelf
+                    ? `<div class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff] mb-0.5">${escapeHtml(d.authorName || 'Reader')}</div>`
+                    : ''
+                }
+                <p class="text-sm leading-relaxed text-slate-900 dark:text-[#f5f5f5] whitespace-pre-wrap break-words">${escapeHtml(d.content || '')}</p>
+                <div class="flex items-center justify-end gap-2 mt-1 text-[11px] text-[#6c7883] dark:text-slate-300/70">
+                  ${
+                    canDelete
+                      ? `<button data-delete-id="${item.id}" class="delete-comment-btn hover:text-red-500 cursor-pointer">Delete</button>`
+                      : ''
+                  }
+                  <span>${timeStr}</span>
+                  ${isSelf ? '<span class="text-[#2481cc] dark:text-[#3ea6ff]">✓✓</span>' : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      listEl.querySelectorAll('.delete-comment-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-id');
+          if (id && db) await deleteDoc(doc(db, 'comments', id));
+        });
+      });
+    }
+
+    if (!isFirebaseConfigured || !db) {
+      if (listEl) {
+        listEl.innerHTML =
+          '<div class="text-center py-6 text-xs text-[#6c7883]">Firebase configuration missing.</div>';
+      }
+      return;
+    }
+
+    onAuthChange((user) => {
+      currentUser = user;
+      if (user) {
+        googleBtn?.classList.add('hidden');
+        githubBtn?.classList.add('hidden');
+        logoutBtn?.classList.remove('hidden');
+        form?.classList.remove('hidden');
+        form?.classList.add('flex');
+      } else {
+        googleBtn?.classList.remove('hidden');
+        githubBtn?.classList.remove('hidden');
+        logoutBtn?.classList.add('hidden');
+        form?.classList.add('hidden');
+        form?.classList.remove('flex');
+      }
+      renderComments(latestDocs);
+    });
+
+    googleBtn?.addEventListener('click', () => signInWithGoogle().catch(console.error));
+    githubBtn?.addEventListener('click', () => signInWithGithub().catch(console.error));
+    logoutBtn?.addEventListener('click', () => signOutUser().catch(console.error));
+
+    input?.addEventListener('input', () => {
+      if (charCounter && input) {
+        charCounter.textContent = `${input.value.length}/499`;
+      }
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser || !db || !input) return;
+      const content = input.value.trim();
+      if (!content || content.length >= 500) return;
+
+      if (planeIcon) {
+        planeIcon.classList.remove('animate-tg-plane');
+        void planeIcon.getBoundingClientRect();
+        planeIcon.classList.add('animate-tg-plane');
+      }
+
+      input.value = '';
+      if (charCounter) charCounter.textContent = '0/499';
+
+      await addDoc(collection(db, 'comments'), {
+        slug,
+        uid: currentUser.uid,
+        authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+        authorPhoto: currentUser.photoURL || '',
+        content,
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    const q = query(
+      collection(db, 'comments'),
+      where('slug', '==', slug),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    unsubscribeComments = onSnapshot(q, (snapshot) => {
+      latestDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+      renderComments(latestDocs);
+    });
+  }
+
+  initComments();
+  document.addEventListener('astro:page-load', initComments);
+</script>

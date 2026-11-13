@@ -56,7 +56,7 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
         sortedPosts.length === 0 ? (
           <div id="empty-blog-hint" class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center">
             <p class="text-sm text-[#6c7883]">
-              暂无长文。点击右上角 <a href="/admin?tab=article" class="text-[#2481cc] dark:text-[#3ea6ff] font-medium hover:underline">+ 写长文</a> 发布第一篇文章，或前往 <a href="/moments" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Moments</a> 查看碎片动态。
+              正在加载文章...
             </p>
           </div>
         ) : (
@@ -193,7 +193,12 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
       try {
         const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
-        if (!snap.empty) {
+        if (snap.empty) {
+          if (emptyHint) {
+            emptyHint.innerHTML =
+              '<p class="text-sm text-[#6c7883]">暂无长文，欢迎前往 <a href="/moments" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Moments</a> 查看碎片动态。</p>';
+          }
+        } else {
           emptyHint?.classList.add('hidden');
 
           const existingCats = new Set(

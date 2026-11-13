@@ -1,10 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
-
-const gitPosts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
-);
 ---
 
 <BaseLayout
@@ -197,6 +192,14 @@ const gitPosts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
           <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <span id="art-publish-status" class="text-xs text-[#6c7883]"></span>
             <div class="flex items-center gap-2">
+              <input id="art-import-file" type="file" accept=".md,.markdown" class="hidden" />
+              <button
+                id="art-import-btn"
+                type="button"
+                class="px-3.5 py-2 rounded-full bg-slate-100 dark:bg-white/10 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors cursor-pointer"
+              >
+                导入 .md
+              </button>
               <button
                 id="art-export-btn"
                 type="button"
@@ -217,44 +220,6 @@ const gitPosts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
           <div class="text-xs font-semibold text-[#6c7883] mb-3">Published Online Articles (Firestore)</div>
           <div id="admin-articles-list" class="divide-y divide-slate-100 dark:divide-white/5"></div>
-        </div>
-
-        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-[#6c7883]">Git Archive Articles (src/content/posts)</span>
-            <span class="text-[11px] text-[#6c7883]">{gitPosts.length} posts</span>
-          </div>
-          {
-            gitPosts.length === 0 ? (
-              <p class="py-3 text-xs text-[#6c7883]">No Git Markdown posts.</p>
-            ) : (
-              <div class="divide-y divide-slate-100 dark:divide-white/5">
-                {gitPosts.map((p) => (
-                  <div class="py-3 flex items-center justify-between gap-4">
-                    <div class="min-w-0">
-                      <a
-                        href={`/posts/${p.id}`}
-                        class="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-[#2481cc] truncate block"
-                      >
-                        {p.data.title}
-                      </a>
-                      <span class="text-[11px] text-[#6c7883] font-mono">
-                        /posts/{p.id} · {p.data.pubDate.toISOString().slice(0, 10)}
-                      </span>
-                    </div>
-                    <a
-                      href={`https://github.com/Ruinique/Space/blob/main/src/content/posts/${p.id}.md`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-xs text-[#2481cc] dark:text-[#3ea6ff] hover:underline shrink-0"
-                    >
-                      GitHub ↗
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )
-          }
         </div>
       </div>
 
@@ -425,6 +390,57 @@ const gitPosts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
       a.href = URL.createObjectURL(blob);
       a.download = `${slug}.md`;
       a.click();
+    });
+
+    const artImportBtn = document.getElementById('art-import-btn');
+    const artImportFile = document.getElementById('art-import-file') as HTMLInputElement | null;
+    artImportBtn?.addEventListener('click', () => artImportFile?.click());
+    artImportFile?.addEventListener('change', async () => {
+      const file = artImportFile.files?.[0];
+      if (!file) return;
+      const raw = await file.text();
+      let body = raw;
+      const fmMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+      if (fmMatch) {
+        const fm = fmMatch[1];
+        body = fmMatch[2].trimStart();
+        const getField = (key: string) => {
+          const m = fm.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+          return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+        };
+        const titleVal = getField('title');
+        const subVal = getField('subtitle') || getField('description');
+        const catVal = getField('category');
+        if (artTitle && titleVal) artTitle.value = titleVal;
+        if (artSubtitle && subVal) artSubtitle.value = subVal;
+        if (artCategory && catVal) artCategory.value = catVal;
+        const inlineTags = fm.match(/^tags:\s*\[([^\]]*)\]/m);
+        if (artTags && inlineTags) {
+          artTags.value = inlineTags[1]
+            .split(',')
+            .map((t) => t.trim().replace(/^["']|["']$/g, ''))
+            .filter(Boolean)
+            .join(', ');
+        } else {
+          const blockTags = fm.match(/^tags:\s*\r?\n((?:\s*-\s*.+\r?\n?)+)/m);
+          if (artTags && blockTags) {
+            artTags.value = blockTags[1]
+              .split(/\r?\n/)
+              .map((l) => l.replace(/^\s*-\s*/, '').trim().replace(/^["']|["']$/g, ''))
+              .filter(Boolean)
+              .join(', ');
+          }
+        }
+      }
+      if (artSlug) {
+        artSlug.value = file.name.replace(/\.(md|markdown)$/i, '');
+        artSlug.dataset.manual = '1';
+      }
+      if (artContent) {
+        artContent.value = body;
+        artContent.dispatchEvent(new Event('input'));
+      }
+      artImportFile.value = '';
     });
 
     artForm?.addEventListener('submit', async (e) => {

@@ -120,9 +120,11 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
 </BaseLayout>
 
 <script>
-  import { db, isFirebaseConfigured } from '../lib/firebase';
+  import { db, isFirebaseConfigured, ADMIN_EMAIL, onAuthChange } from '../lib/firebase';
   import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
   import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
+
+  let unsubscribeBlogAuth: (() => void) | null = null;
 
   function escapeHtml(str: string): string {
     return str
@@ -165,6 +167,22 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
 
   async function hydrateBlogPage() {
     bindFilterButtons();
+    unsubscribeBlogAuth?.();
+    unsubscribeBlogAuth = null;
+
+    const writeBtn = document.getElementById('write-article-btn');
+    if (isFirebaseConfigured) {
+      unsubscribeBlogAuth = onAuthChange((user) => {
+        if (writeBtn) {
+          if (user && user.email === ADMIN_EMAIL) {
+            writeBtn.classList.remove('hidden');
+          } else {
+            writeBtn.classList.add('hidden');
+          }
+        }
+      });
+    }
+
     if (!isFirebaseConfigured || !db) return;
 
     const feedEl = document.getElementById('dynamic-articles-feed');

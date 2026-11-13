@@ -22,6 +22,7 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
         <button
           type="button"
           data-cat-filter="ALL"
+          data-i18n="blog.all"
           class="blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc] text-white dark:bg-[#3ea6ff] dark:text-[#0e1621] transition-colors cursor-pointer"
         >
           All
@@ -40,8 +41,10 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
       </div>
 
       <a
+        id="write-article-btn"
         href="/admin?tab=article"
-        class="px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:bg-[#2481cc]/20 transition-colors shrink-0"
+        data-i18n="blog.write"
+        class="hidden px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:bg-[#2481cc]/20 transition-colors shrink-0"
       >
         + 写长文
       </a>
@@ -55,7 +58,7 @@ const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.catego
       {
         sortedPosts.length === 0 ? (
           <div id="empty-blog-hint" class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center">
-            <p class="text-sm text-[#6c7883]">
+            <p data-i18n="blog.loading" class="text-sm text-[#6c7883]">
               正在加载文章...
             </p>
           </div>

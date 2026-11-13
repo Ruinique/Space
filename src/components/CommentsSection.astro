@@ -9,7 +9,7 @@ const { slug } = Astro.props;
 <section id="comments-section" data-slug={slug} class="mt-8">
   <div class="flex items-center justify-between mb-4 px-1">
     <div class="flex items-center gap-2">
-      <span class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
+      <span data-i18n="article.discussion" class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
       <span
         id="comments-count"
         class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]"
@@ -22,6 +22,7 @@ const { slug } = Astro.props;
       <button
         id="login-google-btn"
         type="button"
+        data-i18n="article.signInGoogle"
         class="px-3 py-1 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
       >
         Sign in with Google
@@ -36,6 +37,7 @@ const { slug } = Astro.props;
       <button
         id="logout-btn"
         type="button"
+        data-i18n="article.signOut"
         class="hidden px-3 py-1 rounded-full bg-white dark:bg-[#182533] text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
       >
         Sign Out
@@ -57,6 +59,7 @@ const { slug } = Astro.props;
       id="comment-input"
       type="text"
       maxlength="499"
+      data-i18n-placeholder="article.writePlaceholder"
       placeholder="Write a comment..."
       class="flex-1 bg-transparent text-sm text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
     />

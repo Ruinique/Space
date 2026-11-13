@@ -10,17 +10,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
     <!-- Channel Status Pill -->
     <div class="flex items-center justify-between px-1">
-      <span class="px-3 py-1 rounded-full text-xs font-medium bg-black/8 dark:bg-white/10 text-slate-700 dark:text-slate-200 backdrop-blur-md">
+      <span data-i18n="moments.badge" class="px-3 py-1 rounded-full text-xs font-medium bg-black/8 dark:bg-white/10 text-slate-700 dark:text-slate-200 backdrop-blur-md">
         Lab Notes &amp; Fragments
       </span>
-      <span id="moments-live-indicator" class="text-xs font-medium text-[#6c7883]">
+      <span id="moments-live-indicator" data-i18n="moments.connecting" class="text-xs font-medium text-[#6c7883]">
         ● Connecting...
       </span>
     </div>
 
     <!-- Real-time Telegram Channel Bubbles -->
     <div id="moments-feed" class="space-y-4">
-      <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center text-xs text-[#6c7883]">
+      <div data-i18n="moments.syncing" class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center text-xs text-[#6c7883]">
         Synchronizing messages...
       </div>
     </div>
@@ -39,6 +39,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   } from '../lib/firebase';
   import { renderAcademicMarkdown } from '../lib/markdown';
   import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
+  import { t } from '../lib/i18n';
   import {
     collection,
     query,
@@ -399,5 +400,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   initMomentsFeed();
+  document.addEventListener('astro:page-load', initMomentsFeed);
+</script>
+omentsFeed();
   document.addEventListener('astro:page-load', initMomentsFeed);
 </script>

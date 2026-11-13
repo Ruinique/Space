@@ -18,7 +18,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors"
       >
         <span>←</span>
-        <span>Back to Blog</span>
+        <span data-i18n="article.backToBlog">Back to Blog</span>
       </a>
       <div class="flex items-center gap-2 tabular-nums">
         <span id="read-date">—</span>
@@ -31,7 +31,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       id="read-card"
       class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-5 sm:p-8"
     >
-      <div id="read-loading" class="py-12 text-center text-sm text-[#6c7883]">
+      <div id="read-loading" data-i18n="article.loading" class="py-12 text-center text-sm text-[#6c7883]">
         Loading article...
       </div>
 
@@ -63,7 +63,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section id="read-comments-mount" class="mt-8 hidden">
       <div class="flex items-center justify-between mb-4 px-1">
         <div class="flex items-center gap-2">
-          <span class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
+          <span data-i18n="article.discussion" class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5]">Discussion</span>
           <span
             id="rc-count"
             class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]"
@@ -75,6 +75,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <button
             id="rc-google-btn"
             type="button"
+            data-i18n="article.signInGoogle"
             class="px-3 py-1 rounded-full bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:text-[#2481cc] cursor-pointer"
           >
             Sign in with Google
@@ -82,6 +83,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <button
             id="rc-logout-btn"
             type="button"
+            data-i18n="article.signOut"
             class="hidden px-3 py-1 rounded-full bg-white dark:bg-[#182533] text-[#6c7883] cursor-pointer"
           >
             Sign Out
@@ -99,6 +101,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           id="rc-input"
           type="text"
           maxlength="499"
+          data-i18n-placeholder="article.writePlaceholder"
           placeholder="Write a comment..."
           class="flex-1 bg-transparent text-sm text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
         />

@@ -36,7 +36,7 @@ const currentPath = Astro.url.pathname;
 
     <script is:inline>
       (function () {
-        function applyTheme() {
+        function applyThemeAndLang() {
           const stored = localStorage.getItem('theme');
           const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           if (stored === 'dark' || (!stored && prefersDark)) {
@@ -44,9 +44,14 @@ const currentPath = Astro.url.pathname;
           } else {
             document.documentElement.classList.remove('dark');
           }
+          const storedLang = localStorage.getItem('lang');
+          const navLang = (navigator.language || '').toLowerCase();
+          const lang = storedLang === 'zh' || storedLang === 'en' ? storedLang : navLang.startsWith('zh') ? 'zh' : 'en';
+          document.documentElement.dataset.lang = lang;
+          document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
         }
-        applyTheme();
-        document.addEventListener('astro:after-swap', applyTheme);
+        applyThemeAndLang();
+        document.addEventListener('astro:after-swap', applyThemeAndLang);
       })();
     </script>
   </head>
@@ -97,6 +102,7 @@ const currentPath = Astro.url.pathname;
           <nav class="flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-medium mr-0.5 sm:mr-1">
             <a
               href="/"
+              data-i18n="nav.about"
               class:list={[
                 'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath === '/'
@@ -108,6 +114,7 @@ const currentPath = Astro.url.pathname;
             </a>
             <a
               href="/blog"
+              data-i18n="nav.blog"
               class:list={[
                 'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/blog') || currentPath.startsWith('/posts') || currentPath.startsWith('/read')
@@ -119,6 +126,7 @@ const currentPath = Astro.url.pathname;
             </a>
             <a
               href="/moments"
+              data-i18n="nav.moments"
               class:list={[
                 'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/moments')
@@ -131,6 +139,7 @@ const currentPath = Astro.url.pathname;
             <a
               id="nav-admin-link"
               href="/admin"
+              data-i18n="nav.admin"
               class:list={[
                 'hidden px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/admin')
@@ -141,6 +150,15 @@ const currentPath = Astro.url.pathname;
               Admin
             </a>
           </nav>
+
+          <button
+            id="lang-toggle-btn"
+            type="button"
+            class="px-2 py-1 rounded-full text-[11px] font-semibold text-[#6c7883] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+            aria-label="Switch language"
+          >
+            EN
+          </button>
 
           <button
             id="open-search-btn"
@@ -226,6 +244,7 @@ const currentPath = Astro.url.pathname;
 
     <script>
       import { isFirebaseConfigured, ADMIN_EMAIL, onAuthChange } from '../lib/firebase';
+      import { applyI18n, toggleLang } from '../lib/i18n';
 
       let pagefind: any = null;
       let unsubscribeNavAuth: (() => void) | null = null;
@@ -244,6 +263,13 @@ const currentPath = Astro.url.pathname;
       }
 
       function setupLayoutControls() {
+        applyI18n();
+
+        const langBtn = document.getElementById('lang-toggle-btn');
+        if (langBtn) {
+          langBtn.onclick = () => toggleLang();
+        }
+
         unsubscribeNavAuth?.();
         unsubscribeNavAuth = null;
 

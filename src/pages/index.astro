@@ -73,7 +73,7 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
               <h1 class="text-lg font-bold text-slate-900 dark:text-[#f5f5f5]">Ruiyi Zhan</h1>
               <span class="text-xs font-mono text-[#6c7883]">@Ruinique</span>
             </div>
-            <p class="text-xs text-[#6c7883] mt-0.5">
+            <p data-i18n="about.role" class="text-xs text-[#6c7883] mt-0.5">
               Graduate Student @uestc-ndsl-hpc · School of CSE, UESTC
             </p>
           </div>
@@ -82,12 +82,14 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
         <div class="flex flex-wrap items-center gap-2">
           <a
             href="/blog"
+            data-i18n="nav.blog"
             class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] hover:opacity-90 transition-opacity"
           >
-            Blog →
+            Blog
           </a>
           <a
             href="/moments"
+            data-i18n="nav.moments"
             class="px-3.5 py-1.5 rounded-full text-xs font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:bg-[#2481cc]/20 transition-colors"
           >
             Moments
@@ -104,17 +106,16 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
       </div>
 
       <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-        Focused on <strong class="font-semibold text-slate-900 dark:text-white">numerical linear algebra</strong>,
-        <strong class="font-semibold text-slate-900 dark:text-white">GPU kernel optimization</strong>, and
-        <strong class="font-semibold text-slate-900 dark:text-white">LLM serving systems</strong>.
-        Here I share long-form technical notes in <a href="/blog" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Blog</a> and real-time lab fragments in <a href="/moments" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Moments</a>.
+        <span data-i18n="about.bioPrefix">Focused on </span><strong data-i18n="about.bio1" class="font-semibold text-slate-900 dark:text-white">numerical linear algebra</strong>,
+        <strong data-i18n="about.bio2" class="font-semibold text-slate-900 dark:text-white">GPU kernel optimization</strong>,
+        <strong data-i18n="about.bio3" class="font-semibold text-slate-900 dark:text-white">LLM serving systems</strong><span data-i18n="about.bioMid">. Sharing long-form technical notes in </span><a href="/blog" data-i18n="nav.blog" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Blog</a><span data-i18n="about.bioMid2"> and real-time lab fragments in </span><a href="/moments" data-i18n="nav.moments" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Moments</a><span data-i18n="about.bioSuffix">.</span>
       </p>
 
       <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
         <ReactionPills statId="about-profile" />
         <div class="flex items-center gap-2 text-[11px] text-[#6c7883] px-2.5 py-1 rounded-full bg-[#f1f4f8] dark:bg-white/8">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>Chengdu · NDSL-HPC</span>
+          <span data-i18n="about.location">Chengdu · NDSL-HPC</span>
         </div>
       </div>
     </section>
@@ -122,24 +123,24 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
     <!-- Research Focus -->
     <section class="space-y-2.5">
       <div class="flex items-center justify-between px-1">
-        <span class="px-3 py-0.5 rounded-full text-xs font-medium bg-black/8 dark:bg-white/10 text-slate-700 dark:text-slate-200">
+        <span data-i18n="about.researchTitle" class="px-3 py-0.5 rounded-full text-xs font-medium bg-black/8 dark:bg-white/10 text-slate-700 dark:text-slate-200">
           Research Focus
         </span>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {
-          researchAreas.map((area) => (
+          researchAreas.map((area, idx) => (
             <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
               <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-base">{area.icon}</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] font-medium">
+                <span data-i18n={`about.area${idx + 1}.tag`} class="text-[10px] px-2 py-0.5 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] font-medium">
                   {area.tag}
                 </span>
               </div>
-              <h2 class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5] mb-1">
+              <h2 data-i18n={`about.area${idx + 1}.title`} class="text-sm font-semibold text-slate-900 dark:text-[#f5f5f5] mb-1">
                 {area.title}
               </h2>
-              <p class="text-xs leading-relaxed text-[#6c7883]">
+              <p data-i18n={`about.area${idx + 1}.desc`} class="text-xs leading-relaxed text-[#6c7883]">
                 {area.desc}
               </p>
             </div>
@@ -151,13 +152,14 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
     <!-- Pinned Projects / Artifacts -->
     <section class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff]">
+        <span data-i18n="about.pinnedTitle" class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff]">
           Pinned Projects
         </span>
         <a
           href="https://github.com/Ruinique?tab=repositories"
           target="_blank"
           rel="noopener noreferrer"
+          data-i18n="about.allRepos"
           class="text-[11px] text-[#6c7883] hover:text-[#2481cc] dark:hover:text-[#3ea6ff]"
         >
           All Repositories ↗
@@ -193,7 +195,7 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
     <!-- Toolkit & Recent Updates -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <section class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5">
-        <div class="text-xs font-semibold text-[#6c7883] mb-3">Toolkit</div>
+        <div data-i18n="about.toolkit" class="text-xs font-semibold text-[#6c7883] mb-3">Toolkit</div>
         <div class="flex flex-wrap gap-1.5">
           {
             toolkit.map((item) => (
@@ -207,8 +209,8 @@ const toolkit = ['C / C++', 'CUDA', 'Python', 'PyTorch', 'Rust', 'CMake', 'Linux
 
       <section class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold text-[#6c7883]">Recent from Blog</span>
-          <a href="/blog" class="text-[11px] text-[#2481cc] dark:text-[#3ea6ff] hover:underline">
+          <span data-i18n="about.recentBlog" class="text-xs font-semibold text-[#6c7883]">Recent from Blog</span>
+          <a href="/blog" data-i18n="about.viewAll" class="text-[11px] text-[#2481cc] dark:text-[#3ea6ff] hover:underline">
             View all →
           </a>
         </div>

@@ -1,5 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const gitPosts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
 ---
 
 <BaseLayout
@@ -210,8 +215,46 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </form>
 
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
-          <div class="text-xs font-semibold text-[#6c7883] mb-3">Published Online Articles</div>
+          <div class="text-xs font-semibold text-[#6c7883] mb-3">Published Online Articles (Firestore)</div>
           <div id="admin-articles-list" class="divide-y divide-slate-100 dark:divide-white/5"></div>
+        </div>
+
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-[#6c7883]">Git Archive Articles (src/content/posts)</span>
+            <span class="text-[11px] text-[#6c7883]">{gitPosts.length} posts</span>
+          </div>
+          {
+            gitPosts.length === 0 ? (
+              <p class="py-3 text-xs text-[#6c7883]">No Git Markdown posts.</p>
+            ) : (
+              <div class="divide-y divide-slate-100 dark:divide-white/5">
+                {gitPosts.map((p) => (
+                  <div class="py-3 flex items-center justify-between gap-4">
+                    <div class="min-w-0">
+                      <a
+                        href={`/posts/${p.id}`}
+                        class="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-[#2481cc] truncate block"
+                      >
+                        {p.data.title}
+                      </a>
+                      <span class="text-[11px] text-[#6c7883] font-mono">
+                        /posts/{p.id} · {p.data.pubDate.toISOString().slice(0, 10)}
+                      </span>
+                    </div>
+                    <a
+                      href={`https://github.com/Ruinique/Space/blob/main/src/content/posts/${p.id}.md`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-xs text-[#2481cc] dark:text-[#3ea6ff] hover:underline shrink-0"
+                    >
+                      GitHub ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )
+          }
         </div>
       </div>
 
@@ -485,20 +528,43 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           articlesListEl.innerHTML = '<p class="py-4 text-xs text-[#6c7883]">No online articles yet.</p>';
           return;
         }
+        const docsMap = new Map<string, any>();
         articlesListEl.innerHTML = snap.docs
           .map((d) => {
             const data = d.data();
+            docsMap.set(d.id, data);
             return `
               <div class="py-3 flex items-center justify-between gap-4">
                 <div class="min-w-0">
                   <a href="/read?slug=${encodeURIComponent(d.id)}" class="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-[#2481cc] truncate block">${escapeHtml(data.title || d.id)}</a>
                   <span class="text-[11px] text-[#6c7883] font-mono">/read?slug=${escapeHtml(d.id)}</span>
                 </div>
-                <button data-del-article="${d.id}" class="text-xs text-red-500 hover:underline shrink-0 cursor-pointer">Delete</button>
+                <div class="flex items-center gap-3 shrink-0">
+                  <button data-edit-article="${d.id}" class="text-xs text-[#2481cc] dark:text-[#3ea6ff] hover:underline cursor-pointer">Edit</button>
+                  <button data-del-article="${d.id}" class="text-xs text-red-500 hover:underline cursor-pointer">Delete</button>
+                </div>
               </div>
             `;
           })
           .join('');
+
+        articlesListEl.querySelectorAll('[data-edit-article]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-edit-article');
+            const data = id ? docsMap.get(id) : null;
+            if (!id || !data) return;
+            if (artTitle) artTitle.value = data.title || '';
+            if (artSlug) artSlug.value = id;
+            if (artSubtitle) artSubtitle.value = data.subtitle || '';
+            if (artCategory) artCategory.value = data.category || 'Systems';
+            if (artTags) artTags.value = Array.isArray(data.tags) ? data.tags.join(', ') : '';
+            if (artContent) {
+              artContent.value = data.content || '';
+              artContent.dispatchEvent(new Event('input'));
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        });
 
         articlesListEl.querySelectorAll('[data-del-article]').forEach((btn) => {
           btn.addEventListener('click', async () => {

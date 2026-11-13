@@ -95,6 +95,30 @@ html.dark .prose-tg :where(blockquote) {
   content: none;
 }
 
+/* Responsive GFM Tables inside Telegram Instant View */
+.prose-tg :where(table) {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.prose-tg :where(th, td) {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  white-space: nowrap;
+}
+
+.prose-tg :where(th) {
+  font-weight: 600;
+  background-color: rgba(36, 129, 204, 0.06);
+}
+
+html.dark .prose-tg :where(th) {
+  background-color: rgba(62, 166, 255, 0.08);
+}
+
 /* KaTeX Display Equation Numbering */
 .katex-display {
   position: relative;

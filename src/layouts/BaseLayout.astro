@@ -93,12 +93,12 @@ const currentPath = Astro.url.pathname;
         </a>
 
         <!-- Right: Channel Tabs + Search + Circular Reveal Theme Toggle -->
-        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <nav class="flex items-center gap-1 text-xs font-medium mr-1">
+        <div class="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+          <nav class="flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-medium mr-0.5 sm:mr-1">
             <a
               href="/"
               class:list={[
-                'px-2.5 py-1.5 rounded-full transition-colors',
+                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath === '/'
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -109,7 +109,7 @@ const currentPath = Astro.url.pathname;
             <a
               href="/blog"
               class:list={[
-                'px-2.5 py-1.5 rounded-full transition-colors',
+                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/blog') || currentPath.startsWith('/posts') || currentPath.startsWith('/read')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -120,7 +120,7 @@ const currentPath = Astro.url.pathname;
             <a
               href="/moments"
               class:list={[
-                'px-2.5 py-1.5 rounded-full transition-colors',
+                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/moments')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -129,9 +129,10 @@ const currentPath = Astro.url.pathname;
               Moments
             </a>
             <a
+              id="nav-admin-link"
               href="/admin"
               class:list={[
-                'px-2.5 py-1.5 rounded-full transition-colors',
+                'hidden px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/admin')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -224,7 +225,10 @@ const currentPath = Astro.url.pathname;
     </div>
 
     <script>
+      import { isFirebaseConfigured, ADMIN_EMAIL, onAuthChange } from '../lib/firebase';
+
       let pagefind: any = null;
+      let unsubscribeNavAuth: (() => void) | null = null;
 
       async function loadPagefind() {
         if (pagefind) return pagefind;
@@ -240,6 +244,20 @@ const currentPath = Astro.url.pathname;
       }
 
       function setupLayoutControls() {
+        unsubscribeNavAuth?.();
+        unsubscribeNavAuth = null;
+
+        const adminLink = document.getElementById('nav-admin-link');
+        if (isFirebaseConfigured && adminLink) {
+          unsubscribeNavAuth = onAuthChange((user) => {
+            if (user && user.email === ADMIN_EMAIL) {
+              adminLink.classList.remove('hidden');
+            } else {
+              adminLink.classList.add('hidden');
+            }
+          });
+        }
+
         const themeBtn = document.getElementById('theme-toggle-btn');
         themeBtn?.addEventListener('click', (e) => {
           const isDark = document.documentElement.classList.contains('dark');

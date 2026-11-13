@@ -28,16 +28,55 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
-  import { db, isFirebaseConfigured } from '../lib/firebase';
+  import {
+    db,
+    isFirebaseConfigured,
+    ADMIN_EMAIL,
+    signInWithGoogle,
+    signInWithGithub,
+    signOutUser,
+    onAuthChange,
+  } from '../lib/firebase';
   import { renderAcademicMarkdown } from '../lib/markdown';
   import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
-  import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    addDoc,
+    deleteDoc,
+    doc,
+    serverTimestamp,
+  } from 'firebase/firestore';
+  import type { User } from 'firebase/auth';
 
   let unsubscribeMoments: (() => void) | null = null;
+  let unsubscribeMomentComments: (() => void) | null = null;
+  let unsubscribeAuth: (() => void) | null = null;
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatDateTime(ts: any): string {
+    const dt = ts?.toDate ? ts.toDate() : new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  }
 
   function initMomentsFeed() {
     unsubscribeMoments?.();
     unsubscribeMoments = null;
+    unsubscribeMomentComments?.();
+    unsubscribeMomentComments = null;
+    unsubscribeAuth?.();
+    unsubscribeAuth = null;
 
     const feedEl = document.getElementById('moments-feed');
     const indicatorEl = document.getElementById('moments-live-indicator');
@@ -51,14 +90,173 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     const seenIds = new Set<string>();
+    const openMomentIds = new Set<string>();
+    const commentsByMoment = new Map<string, Array<{ id: string; data: any }>>();
+    let currentUser: User | null = null;
+
+    function getCommentLabel(count: number): string {
+      if (count === 0) return 'Leave a comment';
+      return count === 1 ? '1 comment' : `${count} comments`;
+    }
+
+    function renderDrawer(momentId: string) {
+      const drawerEl = feedEl?.querySelector<HTMLElement>(`[data-comments-drawer="${CSS.escape(momentId)}"]`);
+      if (!drawerEl) return;
+
+      const list = commentsByMoment.get(momentId) || [];
+      const listHtml =
+        list.length === 0
+          ? '<p class="text-xs text-[#6c7883] py-1">No comments yet. Be the first to reply.</p>'
+          : list
+              .map(({ id, data }) => {
+                const isOwner = currentUser && (currentUser.uid === data.uid || currentUser.email === ADMIN_EMAIL);
+                const avatar = data.authorPhoto
+                  ? `<img src="${escapeHtml(data.authorPhoto)}" alt="" class="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" />`
+                  : `<div class="w-6 h-6 rounded-full bg-[#2481cc]/20 text-[#2481cc] dark:text-[#3ea6ff] flex items-center justify-center text-[10px] font-semibold shrink-0 mt-0.5">${escapeHtml((data.authorName || 'R')[0].toUpperCase())}</div>`;
+
+                return `
+                  <div class="flex items-start gap-2.5">
+                    ${avatar}
+                    <div class="flex-1 min-w-0 rounded-xl bg-[#f1f4f8]/80 dark:bg-[#0e1621]/70 px-3 py-2">
+                      <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <span class="text-[11px] font-semibold text-[#2481cc] dark:text-[#3ea6ff] truncate">${escapeHtml(data.authorName || 'Reader')}</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                          <span class="text-[10px] text-[#6c7883] tabular-nums">${formatDateTime(data.createdAt)}</span>
+                          ${isOwner ? `<button type="button" data-del-moment-comment="${escapeHtml(id)}" class="text-[10px] text-red-500 hover:underline cursor-pointer">Delete</button>` : ''}
+                        </div>
+                      </div>
+                      <p class="text-xs leading-relaxed text-slate-800 dark:text-slate-100 break-words">${escapeHtml(data.content || '')}</p>
+                    </div>
+                  </div>
+                `;
+              })
+              .join('');
+
+      const composerHtml = currentUser
+        ? `
+          <div class="space-y-2 pt-1">
+            <form data-moment-comment-form="${escapeHtml(momentId)}" class="flex items-center gap-2 p-1 pl-3.5 rounded-full bg-[#f1f4f8] dark:bg-[#0e1621] border border-slate-200/60 dark:border-white/10">
+              <input
+                type="text"
+                maxlength="499"
+                placeholder="Write a comment..."
+                class="flex-1 bg-transparent text-xs text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none"
+              />
+              <button
+                type="submit"
+                class="w-7 h-7 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] flex items-center justify-center shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
+                aria-label="Send comment"
+              >
+                <svg class="w-3.5 h-3.5 translate-x-[-1px]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </button>
+            </form>
+            <div class="flex items-center justify-between px-1 text-[11px] text-[#6c7883]">
+              <span class="truncate">Commenting as ${escapeHtml(currentUser.displayName || currentUser.email || 'Reader')}</span>
+              <button type="button" data-moment-signout class="hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0">Sign Out</button>
+            </div>
+          </div>
+        `
+        : `
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <span class="text-[#6c7883]">Sign in to leave a comment:</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" data-moment-signin="google" class="px-3 py-1 rounded-full bg-[#f1f4f8] dark:bg-[#0e1621] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer">
+                Google
+              </button>
+              <button type="button" data-moment-signin="github" class="px-3 py-1 rounded-full bg-[#f1f4f8] dark:bg-[#0e1621] hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer">
+                GitHub
+              </button>
+            </div>
+          </div>
+        `;
+
+      drawerEl.innerHTML = `<div class="space-y-2.5">${listHtml}</div>${composerHtml}`;
+
+      drawerEl.querySelectorAll<HTMLElement>('[data-del-moment-comment]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const cid = btn.getAttribute('data-del-moment-comment');
+          if (cid && db) await deleteDoc(doc(db, 'comments', cid));
+        });
+      });
+
+      drawerEl.querySelector<HTMLButtonElement>('[data-moment-signin="google"]')?.addEventListener('click', () => {
+        signInWithGoogle().catch(console.error);
+      });
+      drawerEl.querySelector<HTMLButtonElement>('[data-moment-signin="github"]')?.addEventListener('click', () => {
+        signInWithGithub().catch(console.error);
+      });
+      drawerEl.querySelector<HTMLButtonElement>('[data-moment-signout]')?.addEventListener('click', () => {
+        signOutUser().catch(console.error);
+      });
+
+      const form = drawerEl.querySelector<HTMLFormElement>('[data-moment-comment-form]');
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || !db) return;
+        const input = form.querySelector('input');
+        const content = input?.value.trim() || '';
+        if (!content || content.length >= 500) return;
+        if (input) input.value = '';
+        await addDoc(collection(db, 'comments'), {
+          slug: `moment_${momentId}`,
+          uid: currentUser.uid,
+          authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+          authorPhoto: currentUser.photoURL || '',
+          content,
+          createdAt: serverTimestamp(),
+        });
+      });
+    }
+
+    unsubscribeAuth = onAuthChange((user) => {
+      currentUser = user;
+      openMomentIds.forEach((momentId) => renderDrawer(momentId));
+    });
+
+    const commentsQ = query(
+      collection(db, 'comments'),
+      where('slug', '>=', 'moment_'),
+      where('slug', '<', 'moment`')
+    );
+
+    unsubscribeMomentComments = onSnapshot(commentsQ, (snap) => {
+      commentsByMoment.clear();
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const slug: string = data.slug || '';
+        if (!slug.startsWith('moment_')) return;
+        const momentId = slug.slice('moment_'.length);
+        const arr = commentsByMoment.get(momentId) || [];
+        arr.push({ id: d.id, data });
+        commentsByMoment.set(momentId, arr);
+      });
+
+      commentsByMoment.forEach((arr) => {
+        arr.sort((a, b) => {
+          const ta = a.data.createdAt?.toMillis ? a.data.createdAt.toMillis() : Date.now();
+          const tb = b.data.createdAt?.toMillis ? b.data.createdAt.toMillis() : Date.now();
+          return tb - ta;
+        });
+      });
+
+      feedEl.querySelectorAll<HTMLElement>('[data-comment-label]').forEach((labelEl) => {
+        const momentId = labelEl.getAttribute('data-comment-label') || '';
+        const count = (commentsByMoment.get(momentId) || []).length;
+        labelEl.textContent = getCommentLabel(count);
+      });
+
+      openMomentIds.forEach((momentId) => renderDrawer(momentId));
+    });
+
     const q = query(collection(db, 'moments'), orderBy('createdAt', 'desc'));
 
     unsubscribeMoments = onSnapshot(
       q,
       (snapshot) => {
         if (indicatorEl) {
-          indicatorEl.innerHTML =
-            `<span class="text-[#2481cc] dark:text-[#3ea6ff]">● Live</span> · ${snapshot.size} messages`;
+          indicatorEl.innerHTML = `<span class="text-[#2481cc] dark:text-[#3ea6ff]">● Live</span> · ${snapshot.size} messages`;
         }
 
         if (snapshot.empty) {
@@ -81,6 +279,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             const html = renderAcademicMarkdown(data.content || '');
             const isNew = !seenIds.has(docSnap.id);
             seenIds.add(docSnap.id);
+            const isOpen = openMomentIds.has(docSnap.id);
+            const commentCount = (commentsByMoment.get(docSnap.id) || []).length;
             const tgLink =
               data.tgChannelUsername && data.tgMessageId
                 ? `<a href="https://t.me/${data.tgChannelUsername}/${data.tgMessageId}" target="_blank" rel="noopener noreferrer" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline mr-1">Telegram ↗</a>`
@@ -93,7 +293,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
                     Ruiyi Zhan
                   </span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]">
-                    #${tag}
+                    #${escapeHtml(tag)}
                   </span>
                 </div>
 
@@ -109,6 +309,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
                     <span>${dateStr} ${timeStr}</span>
                   </div>
                 </div>
+
+                <div class="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-white/5">
+                  <button
+                    type="button"
+                    data-toggle-comments="${docSnap.id}"
+                    class="w-full flex items-center justify-between text-xs font-medium text-[#2481cc] dark:text-[#3ea6ff] hover:opacity-80 transition-opacity cursor-pointer py-0.5"
+                  >
+                    <span class="flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span data-comment-label="${docSnap.id}">${getCommentLabel(commentCount)}</span>
+                    </span>
+                    <svg data-comment-chevron="${docSnap.id}" class="w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <div data-comments-drawer="${docSnap.id}" class="${isOpen ? '' : 'hidden'} mt-3 pt-3 border-t border-slate-100 dark:border-white/5 space-y-3"></div>
+                </div>
               </article>
             `;
           })
@@ -117,6 +337,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         feedEl.querySelectorAll<HTMLElement>('.tg-reactions').forEach((el) => {
           hydrateReactionContainer(el);
         });
+
+        feedEl.querySelectorAll<HTMLButtonElement>('[data-toggle-comments]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const momentId = btn.getAttribute('data-toggle-comments');
+            if (!momentId) return;
+            const drawerEl = feedEl.querySelector<HTMLElement>(`[data-comments-drawer="${CSS.escape(momentId)}"]`);
+            const chevronEl = feedEl.querySelector<HTMLElement>(`[data-comment-chevron="${CSS.escape(momentId)}"]`);
+            if (!drawerEl) return;
+
+            if (openMomentIds.has(momentId)) {
+              openMomentIds.delete(momentId);
+              drawerEl.classList.add('hidden');
+              chevronEl?.classList.remove('rotate-90');
+            } else {
+              openMomentIds.add(momentId);
+              drawerEl.classList.remove('hidden');
+              chevronEl?.classList.add('rotate-90');
+              renderDrawer(momentId);
+            }
+          });
+        });
+
+        openMomentIds.forEach((momentId) => renderDrawer(momentId));
       },
       (err) => {
         console.warn('[Moments] Error:', err);

@@ -7,11 +7,19 @@ import katex from 'katex';
  */
 export function renderAcademicMarkdown(source: string): string {
   const mathBlocks: string[] = [];
+  const codeSpans: string[] = [];
 
-  // Preserve escaped \$ temporarily
+  // 1. Preserve escaped \$
   let processed = source.replace(/\\\$/g, '@@ESCAPED_DOLLAR@@');
 
-  // Extract display math $$...$$ first
+  // 2. Protect fenced code blocks and inline code spans so $ inside code is never parsed as math
+  processed = processed.replace(/```[\s\S]*?```|`[^`\n]+`/g, (match) => {
+    const idx = codeSpans.length;
+    codeSpans.push(match);
+    return `@@CODE_SPAN_${idx}@@`;
+  });
+
+  // 3. Extract display math $$...$$
   processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
     const idx = mathBlocks.length;
     try {
@@ -24,15 +32,16 @@ export function renderAcademicMarkdown(source: string): string {
     return `@@MATH_BLOCK_${idx}@@`;
   });
 
-  // Extract inline math $...$ (avoid matching currency like $1.50 / $7.50)
+  // 4. Extract inline math $...$ (skip currency amounts and CJK prose)
   processed = processed.replace(/(?<![\\0-9])\$(?!\s)([^\n$]+?)(?<!\s)\$/g, (full, expr) => {
-    if (/^\d[\d.,]*(\s|\/|$)/.test(expr.trim())) {
+    const trimmed = expr.trim();
+    if (/^\d[\d.,]*(\s|\/|$)/.test(trimmed) || /[\u4e00-\u9fff]/.test(trimmed)) {
       return full;
     }
     const idx = mathBlocks.length;
     try {
       mathBlocks.push(
-        katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false })
+        katex.renderToString(trimmed, { displayMode: false, throwOnError: false })
       );
     } catch {
       mathBlocks.push(`<code>${expr}</code>`);
@@ -40,8 +49,15 @@ export function renderAcademicMarkdown(source: string): string {
     return `@@MATH_BLOCK_${idx}@@`;
   });
 
+  // 5. Restore protected code blocks/spans so marked parses them normally
+  codeSpans.forEach((code, idx) => {
+    processed = processed.replace(`@@CODE_SPAN_${idx}@@`, code);
+  });
+
+  // 6. Parse Markdown (GFM tables, lists, code)
   let html = marked.parse(processed, { async: false, breaks: true, gfm: true }) as string;
 
+  // 7. Restore rendered KaTeX math blocks
   mathBlocks.forEach((rendered, idx) => {
     html = html.replace(`@@MATH_BLOCK_${idx}@@`, rendered);
   });

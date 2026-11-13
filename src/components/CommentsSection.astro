@@ -229,11 +229,29 @@ const { slug } = Astro.props;
       }
     });
 
+    let isSendingComment = false;
+    let lastCommentSentAt = 0;
+    let lastCommentContent = '';
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!currentUser || !db || !input) return;
+      if (isSendingComment || !currentUser || !db || !input) return;
       const content = input.value.trim();
       if (!content || content.length >= 500) return;
+
+      const now = Date.now();
+      if (now - lastCommentSentAt < 5000 || (content === lastCommentContent && now - lastCommentSentAt < 15000)) {
+        input.setCustomValidity('发送过于频繁，请稍候再试');
+        input.reportValidity();
+        setTimeout(() => input.setCustomValidity(''), 2000);
+        return;
+      }
+
+      const sendBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      isSendingComment = true;
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.classList.add('opacity-50', 'pointer-events-none');
+      }
 
       if (planeIcon) {
         planeIcon.classList.remove('animate-tg-plane');
@@ -241,17 +259,26 @@ const { slug } = Astro.props;
         planeIcon.classList.add('animate-tg-plane');
       }
 
-      input.value = '';
-      if (charCounter) charCounter.textContent = '0/499';
-
-      await addDoc(collection(db, 'comments'), {
-        slug,
-        uid: currentUser.uid,
-        authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
-        authorPhoto: currentUser.photoURL || '',
-        content,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(collection(db, 'comments'), {
+          slug,
+          uid: currentUser.uid,
+          authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+          authorPhoto: currentUser.photoURL || '',
+          content,
+          createdAt: serverTimestamp(),
+        });
+        lastCommentSentAt = Date.now();
+        lastCommentContent = content;
+        input.value = '';
+        if (charCounter) charCounter.textContent = '0/499';
+      } finally {
+        isSendingComment = false;
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+      }
     });
 
     const q = query(

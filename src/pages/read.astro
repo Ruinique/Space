@@ -331,20 +331,48 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       googleBtn?.addEventListener('click', () => signInWithGoogle().catch(console.error));
       logoutBtn?.addEventListener('click', () => signOutUser().catch(console.error));
+      let isSendingReadComment = false;
+      let lastReadCommentSentAt = 0;
+      let lastReadCommentContent = '';
       form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!currentUser || !db || !input) return;
+        if (isSendingReadComment || !currentUser || !db || !input) return;
         const content = input.value.trim();
         if (!content || content.length >= 500) return;
-        input.value = '';
-        await addDoc(collection(db, 'comments'), {
-          slug,
-          uid: currentUser.uid,
-          authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
-          authorPhoto: currentUser.photoURL || '',
-          content,
-          createdAt: serverTimestamp(),
-        });
+
+        const now = Date.now();
+        if (now - lastReadCommentSentAt < 5000 || (content === lastReadCommentContent && now - lastReadCommentSentAt < 15000)) {
+          input.setCustomValidity('发送过于频繁，请稍候再试');
+          input.reportValidity();
+          setTimeout(() => input.setCustomValidity(''), 2000);
+          return;
+        }
+
+        const sendBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        isSendingReadComment = true;
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+        try {
+          await addDoc(collection(db, 'comments'), {
+            slug,
+            uid: currentUser.uid,
+            authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+            authorPhoto: currentUser.photoURL || '',
+            content,
+            createdAt: serverTimestamp(),
+          });
+          lastReadCommentSentAt = Date.now();
+          lastReadCommentContent = content;
+          input.value = '';
+        } finally {
+          isSendingReadComment = false;
+          if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('opacity-50', 'pointer-events-none');
+          }
+        }
       });
 
       const q = query(

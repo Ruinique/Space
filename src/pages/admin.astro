@@ -443,14 +443,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       artImportFile.value = '';
     });
 
+    let isPublishingArticle = false;
     artForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!db || !artTitle || !artSlug || !artContent) return;
+      if (isPublishingArticle || !db || !artTitle || !artSlug || !artContent) return;
       const slug = artSlug.value.trim().replace(/\//g, '-');
       const title = artTitle.value.trim();
       const content = artContent.value.trim();
       if (!slug || !title || !content) return;
 
+      const submitBtn = artForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+      isPublishingArticle = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'pointer-events-none');
+      }
       if (artStatus) artStatus.textContent = 'Publishing...';
       try {
         const tags = (artTags?.value || '')
@@ -474,14 +481,36 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (artPreview) artPreview.innerHTML = '<span class="text-xs text-[#6c7883]">Article live preview...</span>';
       } catch (err: any) {
         if (artStatus) artStatus.textContent = err?.message || 'Error';
+      } finally {
+        isPublishingArticle = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
       }
     });
 
+    let isSendingMoment = false;
+    let lastMomentSentAt = 0;
+    let lastMomentContent = '';
     momentForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!db || !momentInput) return;
+      if (isSendingMoment || !db || !momentInput) return;
       const content = momentInput.value.trim();
       if (!content) return;
+
+      const now = Date.now();
+      if (now - lastMomentSentAt < 3000 || (content === lastMomentContent && now - lastMomentSentAt < 15000)) {
+        if (publishStatus) publishStatus.textContent = '发送过于频繁，请稍候再试';
+        return;
+      }
+
+      const submitBtn = momentForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+      isSendingMoment = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'pointer-events-none');
+      }
 
       if (planeIcon) {
         planeIcon.classList.remove('animate-tg-plane');
@@ -496,11 +525,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           content,
           createdAt: serverTimestamp(),
         });
+        lastMomentSentAt = Date.now();
+        lastMomentContent = content;
         momentInput.value = '';
         if (momentPreview) momentPreview.innerHTML = '<span class="text-xs text-[#6c7883]">Live preview...</span>';
         if (publishStatus) publishStatus.textContent = 'Sent ✓';
       } catch (err: any) {
         if (publishStatus) publishStatus.textContent = err?.message || 'Error';
+      } finally {
+        isSendingMoment = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
       }
     });
 

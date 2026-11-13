@@ -192,21 +192,51 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       });
 
       const form = drawerEl.querySelector<HTMLFormElement>('[data-moment-comment-form]');
+      let isSendingMomentComment = false;
+      let lastMomentCommentSentAt = 0;
+      let lastMomentCommentContent = '';
       form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!currentUser || !db) return;
+        if (isSendingMomentComment || !currentUser || !db) return;
         const input = form.querySelector('input');
         const content = input?.value.trim() || '';
         if (!content || content.length >= 500) return;
-        if (input) input.value = '';
-        await addDoc(collection(db, 'comments'), {
-          slug: `moment_${momentId}`,
-          uid: currentUser.uid,
-          authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
-          authorPhoto: currentUser.photoURL || '',
-          content,
-          createdAt: serverTimestamp(),
-        });
+
+        const now = Date.now();
+        if (now - lastMomentCommentSentAt < 5000 || (content === lastMomentCommentContent && now - lastMomentCommentSentAt < 15000)) {
+          if (input) {
+            input.setCustomValidity('发送过于频繁，请稍候再试');
+            input.reportValidity();
+            setTimeout(() => input.setCustomValidity(''), 2000);
+          }
+          return;
+        }
+
+        const sendBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        isSendingMomentComment = true;
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+        try {
+          await addDoc(collection(db, 'comments'), {
+            slug: `moment_${momentId}`,
+            uid: currentUser.uid,
+            authorName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Reader',
+            authorPhoto: currentUser.photoURL || '',
+            content,
+            createdAt: serverTimestamp(),
+          });
+          lastMomentCommentSentAt = Date.now();
+          lastMomentCommentContent = content;
+          if (input) input.value = '';
+        } finally {
+          isSendingMomentComment = false;
+          if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('opacity-50', 'pointer-events-none');
+          }
+        }
       });
     }
 

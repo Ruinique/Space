@@ -1,0 +1,282 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ReactionPills from '../components/ReactionPills.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const sortedPosts = allPosts.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const staticCategories = Array.from(new Set(sortedPosts.map((p) => p.data.category || 'Essay')));
+---
+
+<BaseLayout
+  title="Blog — Ruiyi Zhan (@Ruinique)"
+  description="Long-form engineering essays, research notes, and systems deep dives."
+  subtitle={`Blog · ${sortedPosts.length} local posts`}
+>
+  <div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
+    <!-- Top Header & Category Filter Pills -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+      <div id="blog-filter-bar" class="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          data-cat-filter="ALL"
+          class="blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc] text-white dark:bg-[#3ea6ff] dark:text-[#0e1621] transition-colors cursor-pointer"
+        >
+          All
+        </button>
+        {
+          staticCategories.map((cat) => (
+            <button
+              type="button"
+              data-cat-filter={cat}
+              class="blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#182533] text-[#6c7883] hover:text-slate-900 dark:hover:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors cursor-pointer"
+            >
+              {cat}
+            </button>
+          ))
+        }
+      </div>
+
+      <a
+        href="/admin?tab=article"
+        class="px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:bg-[#2481cc]/20 transition-colors shrink-0"
+      >
+        + 写长文
+      </a>
+    </div>
+
+    <!-- Online Published Articles from Firestore -->
+    <div id="dynamic-articles-feed" class="space-y-4"></div>
+
+    <!-- Static Markdown Articles -->
+    <div id="static-articles-feed" class="space-y-4">
+      {
+        sortedPosts.length === 0 ? (
+          <div id="empty-blog-hint" class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center">
+            <p class="text-sm text-[#6c7883]">
+              暂无长文。点击右上角 <a href="/admin?tab=article" class="text-[#2481cc] dark:text-[#3ea6ff] font-medium hover:underline">+ 写长文</a> 发布第一篇文章，或前往 <a href="/moments" class="text-[#2481cc] dark:text-[#3ea6ff] hover:underline">Moments</a> 查看碎片动态。
+            </p>
+          </div>
+        ) : (
+          sortedPosts.map((post) => {
+            const dateStr = post.data.pubDate.toISOString().slice(0, 10);
+            const cat = post.data.category || 'Essay';
+            return (
+              <article
+                data-article-card
+                data-category={cat}
+                transition:name={`card-${post.id}`}
+                class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-5 hover:shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-shadow"
+              >
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff]">
+                    Ruiyi Zhan · {cat}
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    {post.data.tags.slice(0, 3).map((tag) => (
+                      <span class="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f4f8] dark:bg-white/8 text-[#6c7883]">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <a href={`/posts/${post.id}`} class="block group">
+                  <h2
+                    transition:name={`title-${post.id}`}
+                    class="text-lg sm:text-xl font-semibold text-slate-900 dark:text-[#f5f5f5] group-hover:text-[#2481cc] dark:group-hover:text-[#3ea6ff] transition-colors"
+                  >
+                    {post.data.title}
+                  </h2>
+                  <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 mt-1.5">
+                    {post.data.description}
+                  </p>
+                </a>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
+                  <ReactionPills statId={post.id} />
+
+                  <div class="flex items-center gap-2 text-[11px] text-[#6c7883] px-2.5 py-1 rounded-full bg-[#f1f4f8] dark:bg-white/8 tabular-nums">
+                    <span class="inline-flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span data-view-slug={post.id}>—</span>
+                    </span>
+                    <span>·</span>
+                    <span>{dateStr}</span>
+                  </div>
+                </div>
+              </article>
+            );
+          })
+        )
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { db, isFirebaseConfigured } from '../lib/firebase';
+  import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
+  import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function applyCategoryFilter(selectedCat: string) {
+    document.querySelectorAll<HTMLButtonElement>('.blog-cat-pill').forEach((btn) => {
+      const cat = btn.getAttribute('data-cat-filter');
+      if (cat === selectedCat) {
+        btn.className =
+          'blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-[#2481cc] text-white dark:bg-[#3ea6ff] dark:text-[#0e1621] transition-colors cursor-pointer';
+      } else {
+        btn.className =
+          'blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#182533] text-[#6c7883] hover:text-slate-900 dark:hover:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors cursor-pointer';
+      }
+    });
+
+    document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
+      const cardCat = card.getAttribute('data-category') || 'Essay';
+      if (selectedCat === 'ALL' || cardCat === selectedCat) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  function bindFilterButtons() {
+    document.querySelectorAll<HTMLButtonElement>('.blog-cat-pill').forEach((btn) => {
+      btn.onclick = () => {
+        const cat = btn.getAttribute('data-cat-filter') || 'ALL';
+        applyCategoryFilter(cat);
+      };
+    });
+  }
+
+  async function hydrateBlogPage() {
+    bindFilterButtons();
+    if (!isFirebaseConfigured || !db) return;
+
+    const feedEl = document.getElementById('dynamic-articles-feed');
+    const emptyHint = document.getElementById('empty-blog-hint');
+    const filterBar = document.getElementById('blog-filter-bar');
+
+    if (feedEl) {
+      try {
+        const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          emptyHint?.classList.add('hidden');
+
+          const existingCats = new Set(
+            Array.from(document.querySelectorAll<HTMLElement>('.blog-cat-pill')).map(
+              (b) => b.getAttribute('data-cat-filter') || ''
+            )
+          );
+
+          snap.docs.forEach((d) => {
+            const cat = d.data().category || 'Essay';
+            if (filterBar && !existingCats.has(cat)) {
+              existingCats.add(cat);
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.setAttribute('data-cat-filter', cat);
+              btn.className =
+                'blog-cat-pill px-3 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#182533] text-[#6c7883] hover:text-slate-900 dark:hover:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors cursor-pointer';
+              btn.textContent = cat;
+              filterBar.appendChild(btn);
+            }
+          });
+          bindFilterButtons();
+
+          feedEl.innerHTML = snap.docs
+            .map((d) => {
+              const data = d.data();
+              const slug = d.id;
+              const cat = data.category || 'Essay';
+              const dt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+              const pad = (n: number) => String(n).padStart(2, '0');
+              const dateStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+              const tags: string[] = Array.isArray(data.tags) ? data.tags : [];
+
+              return `
+                <article data-article-card data-category="${escapeHtml(cat)}" class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-5 hover:shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-shadow">
+                  <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="text-xs font-semibold text-[#2481cc] dark:text-[#3ea6ff]">
+                      Ruiyi Zhan · ${escapeHtml(cat)}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      ${tags
+                        .slice(0, 3)
+                        .map(
+                          (t) =>
+                            `<span class="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f4f8] dark:bg-white/8 text-[#6c7883]">#${escapeHtml(t)}</span>`
+                        )
+                        .join('')}
+                    </div>
+                  </div>
+                  <a href="/read?slug=${encodeURIComponent(slug)}" class="block group">
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-900 dark:text-[#f5f5f5] group-hover:text-[#2481cc] dark:group-hover:text-[#3ea6ff] transition-colors">
+                      ${escapeHtml(data.title || 'Untitled')}
+                    </h2>
+                    ${
+                      data.subtitle
+                        ? `<p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 mt-1.5">${escapeHtml(data.subtitle)}</p>`
+                        : ''
+                    }
+                  </a>
+                  <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
+                    ${renderReactionPillsHtml(slug)}
+                    <div class="flex items-center gap-2 text-[11px] text-[#6c7883] px-2.5 py-1 rounded-full bg-[#f1f4f8] dark:bg-white/8 tabular-nums">
+                      <span>👁️ <span data-view-slug="${escapeHtml(slug)}">—</span></span>
+                      <span>·</span>
+                      <span>${dateStr}</span>
+                    </div>
+                  </div>
+                </article>
+              `;
+            })
+            .join('');
+
+          feedEl.querySelectorAll<HTMLElement>('.tg-reactions').forEach((el) => {
+            hydrateReactionContainer(el);
+          });
+        }
+      } catch (err) {
+        console.warn('[Blog] Failed to load online articles:', err);
+      }
+    }
+
+    const viewNodes = document.querySelectorAll<HTMLElement>('[data-view-slug]');
+    await Promise.all(
+      Array.from(viewNodes).map(async (el) => {
+        const slug = el.getAttribute('data-view-slug');
+        if (!slug || !db) return;
+        try {
+          const snap = await getDoc(doc(db, 'posts_stats', slug));
+          if (snap.exists()) {
+            const views = snap.data().views ?? 0;
+            el.textContent = String(views);
+          } else {
+            el.textContent = '0';
+          }
+        } catch {
+          // ignore
+        }
+      })
+    );
+  }
+
+  hydrateBlogPage();
+  document.addEventListener('astro:page-load', hydrateBlogPage);
+</script>

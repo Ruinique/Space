@@ -104,7 +104,18 @@ const currentPath = Astro.url.pathname;
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
               ]}
             >
-              Channel
+              About
+            </a>
+            <a
+              href="/blog"
+              class:list={[
+                'px-2.5 py-1.5 rounded-full transition-colors',
+                currentPath.startsWith('/blog') || currentPath.startsWith('/posts') || currentPath.startsWith('/read')
+                  ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+                  : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
+              ]}
+            >
+              Blog
             </a>
             <a
               href="/moments"

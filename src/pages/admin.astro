@@ -123,7 +123,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </form>
 
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
-          <div class="text-xs font-semibold text-[#6c7883] mb-3">Recent Channel Moments (Limit 20)</div>
+          <div class="text-xs font-semibold text-[#6c7883] mb-3">All Channel Moments</div>
           <div id="admin-moments-list" class="divide-y divide-slate-100 dark:divide-white/5"></div>
         </div>
       </div>
@@ -210,14 +210,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </form>
 
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
-          <div class="text-xs font-semibold text-[#6c7883] mb-3">Published Online Articles (Limit 20)</div>
+          <div class="text-xs font-semibold text-[#6c7883] mb-3">Published Online Articles</div>
           <div id="admin-articles-list" class="divide-y divide-slate-100 dark:divide-white/5"></div>
         </div>
       </div>
 
       <!-- Tab 3: Comments Moderation -->
       <div id="panel-comments" class="hidden rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4">
-        <div class="text-xs font-semibold text-[#6c7883] mb-3">Recent Discussion Messages (Limit 20)</div>
+        <div class="text-xs font-semibold text-[#6c7883] mb-3">All Discussion Messages</div>
         <div id="admin-comments-list" class="divide-y divide-slate-100 dark:divide-white/5"></div>
       </div>
     </div>
@@ -238,7 +238,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     collection,
     query,
     orderBy,
-    limit,
     onSnapshot,
     addDoc,
     setDoc,
@@ -449,7 +448,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     function subscribeAdminStreams() {
       if (!db) return;
 
-      const momentsQ = query(collection(db, 'moments'), orderBy('createdAt', 'desc'), limit(20));
+      const momentsQ = query(collection(db, 'moments'), orderBy('createdAt', 'desc'));
       unsubMoments = onSnapshot(momentsQ, (snap) => {
         if (!momentsListEl) return;
         if (snap.empty) {
@@ -479,7 +478,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         });
       });
 
-      const articlesQ = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(20));
+      const articlesQ = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
       unsubArticles = onSnapshot(articlesQ, (snap) => {
         if (!articlesListEl) return;
         if (snap.empty) {
@@ -509,7 +508,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         });
       });
 
-      const commentsQ = query(collection(db, 'comments'), orderBy('createdAt', 'desc'), limit(20));
+      const commentsQ = query(collection(db, 'comments'), orderBy('createdAt', 'desc'));
       unsubComments = onSnapshot(commentsQ, (snap) => {
         if (!commentsListEl) return;
         if (snap.empty) {

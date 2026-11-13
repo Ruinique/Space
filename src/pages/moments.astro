@@ -21,7 +21,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <!-- Real-time Telegram Channel Bubbles -->
     <div id="moments-feed" class="space-y-4">
       <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 text-center text-xs text-[#6c7883]">
-        Synchronizing latest 20 messages...
+        Synchronizing messages...
       </div>
     </div>
   </div>
@@ -31,7 +31,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   import { db, isFirebaseConfigured } from '../lib/firebase';
   import { renderAcademicMarkdown } from '../lib/markdown';
   import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
-  import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+  import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
   let unsubscribeMoments: (() => void) | null = null;
 
@@ -51,14 +51,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     const seenIds = new Set<string>();
-    const q = query(collection(db, 'moments'), orderBy('createdAt', 'desc'), limit(20));
+    const q = query(collection(db, 'moments'), orderBy('createdAt', 'desc'));
 
     unsubscribeMoments = onSnapshot(
       q,
       (snapshot) => {
         if (indicatorEl) {
           indicatorEl.innerHTML =
-            '<span class="text-[#2481cc] dark:text-[#3ea6ff]">● Live</span> · Limit 20';
+            `<span class="text-[#2481cc] dark:text-[#3ea6ff]">● Live</span> · ${snapshot.size} messages`;
         }
 
         if (snapshot.empty) {

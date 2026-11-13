@@ -178,7 +178,7 @@ const artifacts = [
 <script>
   import { db, isFirebaseConfigured } from '../lib/firebase';
   import { renderReactionPillsHtml, hydrateReactionContainer } from '../lib/reactions';
-  import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+  import { doc, getDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
 
   function escapeHtml(str: string): string {
     return str
@@ -196,7 +196,7 @@ const artifacts = [
     const emptyHint = document.getElementById('empty-channel-hint');
     if (feedEl) {
       try {
-        const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(20));
+        const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         if (!snap.empty) {
           emptyHint?.classList.add('hidden');

@@ -97,14 +97,14 @@ const currentPath = Astro.url.pathname;
           </div>
         </a>
 
-        <!-- Right: Channel Tabs + Search + Circular Reveal Theme Toggle -->
+        <!-- Right: Channel Tabs + Search + Circular Reveal Theme Toggle + Mobile Menu -->
         <div class="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-          <nav class="flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-medium mr-0.5 sm:mr-1">
+          <nav class="hidden sm:flex items-center gap-1 text-xs font-medium mr-1">
             <a
               href="/"
               data-i18n="nav.about"
               class:list={[
-                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
+                'px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath === '/'
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -116,7 +116,7 @@ const currentPath = Astro.url.pathname;
               href="/blog"
               data-i18n="nav.blog"
               class:list={[
-                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
+                'px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/blog') || currentPath.startsWith('/posts') || currentPath.startsWith('/read')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -128,7 +128,7 @@ const currentPath = Astro.url.pathname;
               href="/moments"
               data-i18n="nav.moments"
               class:list={[
-                'px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
+                'px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/moments')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -141,7 +141,7 @@ const currentPath = Astro.url.pathname;
               href="/admin"
               data-i18n="nav.admin"
               class:list={[
-                'hidden px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors whitespace-nowrap',
+                'hidden px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap',
                 currentPath.startsWith('/admin')
                   ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
                   : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
@@ -189,8 +189,80 @@ const currentPath = Astro.url.pathname;
               <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
+
+          <!-- Mobile Expandable Menu Button -->
+          <button
+            id="mobile-menu-btn"
+            type="button"
+            class="sm:hidden p-2 rounded-full text-[#6c7883] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#2481cc] dark:hover:text-[#3ea6ff] transition-colors cursor-pointer"
+            aria-label="Toggle navigation menu"
+            aria-expanded="false"
+          >
+            <svg id="mobile-menu-icon-open" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <svg id="mobile-menu-icon-close" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      <!-- Mobile Expandable Navigation Drawer -->
+      <nav
+        id="mobile-nav-drawer"
+        class="hidden sm:hidden border-t border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-[#17212b]/95 backdrop-blur-xl px-4 py-2.5 space-y-1"
+      >
+        <a
+          href="/"
+          data-i18n="nav.about"
+          class:list={[
+            'block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+            currentPath === '/'
+              ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5',
+          ]}
+        >
+          About
+        </a>
+        <a
+          href="/blog"
+          data-i18n="nav.blog"
+          class:list={[
+            'block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+            currentPath.startsWith('/blog') || currentPath.startsWith('/posts') || currentPath.startsWith('/read')
+              ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5',
+          ]}
+        >
+          Blog
+        </a>
+        <a
+          href="/moments"
+          data-i18n="nav.moments"
+          class:list={[
+            'block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+            currentPath.startsWith('/moments')
+              ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5',
+          ]}
+        >
+          Moments
+        </a>
+        <a
+          id="mobile-nav-admin-link"
+          href="/admin"
+          data-i18n="nav.admin"
+          class:list={[
+            'hidden block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+            currentPath.startsWith('/admin')
+              ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5',
+          ]}
+        >
+          Admin
+        </a>
+      </nav>
     </header>
 
     <main class="flex-1">
@@ -274,13 +346,34 @@ const currentPath = Astro.url.pathname;
         unsubscribeNavAuth = null;
 
         const adminLink = document.getElementById('nav-admin-link');
-        if (isFirebaseConfigured && adminLink) {
+        const mobileAdminLink = document.getElementById('mobile-nav-admin-link');
+        if (isFirebaseConfigured && (adminLink || mobileAdminLink)) {
           unsubscribeNavAuth = onAuthChange((user) => {
-            if (user && user.email === ADMIN_EMAIL) {
-              adminLink.classList.remove('hidden');
-            } else {
-              adminLink.classList.add('hidden');
-            }
+            const isAdmin = Boolean(user && user.email === ADMIN_EMAIL);
+            adminLink?.classList.toggle('hidden', !isAdmin);
+            mobileAdminLink?.classList.toggle('hidden', !isAdmin);
+          });
+        }
+
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileDrawer = document.getElementById('mobile-nav-drawer');
+        const iconOpen = document.getElementById('mobile-menu-icon-open');
+        const iconClose = document.getElementById('mobile-menu-icon-close');
+
+        const setMobileMenu = (open: boolean) => {
+          mobileDrawer?.classList.toggle('hidden', !open);
+          iconOpen?.classList.toggle('hidden', open);
+          iconClose?.classList.toggle('hidden', !open);
+          mobileMenuBtn?.setAttribute('aria-expanded', String(open));
+        };
+
+        if (mobileMenuBtn && mobileDrawer) {
+          mobileMenuBtn.onclick = () => {
+            const isOpen = !mobileDrawer.classList.contains('hidden');
+            setMobileMenu(!isOpen);
+          };
+          mobileDrawer.querySelectorAll('a').forEach((a) => {
+            a.addEventListener('click', () => setMobileMenu(false));
           });
         }
 

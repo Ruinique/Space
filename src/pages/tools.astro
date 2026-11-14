@@ -156,6 +156,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               </div>
             </div>
 
+            <div>
+              <label class="block text-[#6c7883] mb-1" for="komari-proxy-url">
+                CORS 代理接口 URL（可选，infra/komari-proxy）
+              </label>
+              <input
+                id="komari-proxy-url"
+                type="url"
+                placeholder="https://us-central1-project-d5956722-3ab5-4c0f-be0.cloudfunctions.net/komariProxy"
+                class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+              />
+            </div>
+
             <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
               <span class="text-[11px] text-[#6c7883]">
                 配置仅保存在当前浏览器 localStorage 中，不会公开上传。
@@ -324,6 +336,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     baseUrl: string;
     apiPath: string;
     token: string;
+    proxyUrl: string;
     mode: 'api' | 'iframe';
   }
 
@@ -348,13 +361,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           baseUrl: typeof parsed.baseUrl === 'string' ? parsed.baseUrl : '',
           apiPath: typeof parsed.apiPath === 'string' && parsed.apiPath ? parsed.apiPath : '/api/nodes',
           token: typeof parsed.token === 'string' ? parsed.token : '',
+          proxyUrl: typeof parsed.proxyUrl === 'string' ? parsed.proxyUrl : '',
           mode: parsed.mode === 'iframe' ? 'iframe' : 'api',
         };
       }
     } catch {
       // ignore invalid storage
     }
-    return { baseUrl: '', apiPath: '/api/nodes', token: '', mode: 'api' };
+    return { baseUrl: '', apiPath: '/api/nodes', token: '', proxyUrl: '', mode: 'api' };
   }
 
   function saveConfig(cfg: KomariConfig): void {
@@ -493,10 +507,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     try {
       const headers: Record<string, string> = {};
-      if (cfg.token.trim()) {
+      let fetchUrl = endpoint;
+
+      if (cfg.proxyUrl.trim()) {
+        const idToken = await auth?.currentUser?.getIdToken();
+        if (!idToken) {
+          throw new Error('Not signed in to Firebase');
+        }
+        headers['Authorization'] = `Bearer ${idToken}`;
+        if (cfg.token.trim()) {
+          headers['X-Komari-Token'] = cfg.token.trim();
+        }
+        const sep = cfg.proxyUrl.includes('?') ? '&' : '?';
+        fetchUrl = `${cfg.proxyUrl.trim()}${sep}url=${encodeURIComponent(endpoint)}`;
+      } else if (cfg.token.trim()) {
         headers['Authorization'] = `Bearer ${cfg.token.trim()}`;
       }
-      const res = await fetch(endpoint, { headers });
+
+      const res = await fetch(fetchUrl, { headers });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status} ${res.statusText}`);
       }
@@ -694,6 +722,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const urlInput = document.getElementById('komari-url') as HTMLInputElement | null;
     const pathInput = document.getElementById('komari-api-path') as HTMLInputElement | null;
     const tokenInput = document.getElementById('komari-token') as HTMLInputElement | null;
+    const proxyInput = document.getElementById('komari-proxy-url') as HTMLInputElement | null;
     const modeSelect = document.getElementById('komari-mode') as HTMLSelectElement | null;
     const configForm = document.getElementById('komari-config-form') as HTMLFormElement | null;
     const toggleConfigBtn = document.getElementById('komari-toggle-config-btn');
@@ -701,6 +730,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     if (urlInput) urlInput.value = cfg.baseUrl;
     if (pathInput) pathInput.value = cfg.apiPath;
     if (tokenInput) tokenInput.value = cfg.token;
+    if (proxyInput) proxyInput.value = cfg.proxyUrl;
     if (modeSelect) modeSelect.value = cfg.mode;
     if (cfg.baseUrl) {
       configForm?.classList.add('hidden');
@@ -716,6 +746,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         baseUrl: (urlInput?.value || '').trim().replace(/\/+$/, ''),
         apiPath: (pathInput?.value || '/api/nodes').trim() || '/api/nodes',
         token: (tokenInput?.value || '').trim(),
+        proxyUrl: (proxyInput?.value || '').trim(),
         mode: modeSelect?.value === 'iframe' ? 'iframe' : 'api',
       };
       saveConfig(next);

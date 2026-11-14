@@ -137,6 +137,19 @@ const currentPath = Astro.url.pathname;
               Moments
             </a>
             <a
+              id="nav-tools-link"
+              href="/tools"
+              data-i18n="nav.tools"
+              class:list={[
+                'hidden px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap',
+                currentPath.startsWith('/tools')
+                  ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+                  : 'text-[#6c7883] hover:text-slate-900 dark:hover:text-white',
+              ]}
+            >
+              Toolbox
+            </a>
+            <a
               id="nav-admin-link"
               href="/admin"
               data-i18n="nav.admin"
@@ -250,6 +263,19 @@ const currentPath = Astro.url.pathname;
           Moments
         </a>
         <a
+          id="mobile-nav-tools-link"
+          href="/tools"
+          data-i18n="nav.tools"
+          class:list={[
+            'hidden block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+            currentPath.startsWith('/tools')
+              ? 'bg-[#2481cc]/12 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff]'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5',
+          ]}
+        >
+          Toolbox
+        </a>
+        <a
           id="mobile-nav-admin-link"
           href="/admin"
           data-i18n="nav.admin"
@@ -347,11 +373,15 @@ const currentPath = Astro.url.pathname;
 
         const adminLink = document.getElementById('nav-admin-link');
         const mobileAdminLink = document.getElementById('mobile-nav-admin-link');
-        if (isFirebaseConfigured && (adminLink || mobileAdminLink)) {
+        const toolsLink = document.getElementById('nav-tools-link');
+        const mobileToolsLink = document.getElementById('mobile-nav-tools-link');
+        if (isFirebaseConfigured && (adminLink || mobileAdminLink || toolsLink || mobileToolsLink)) {
           unsubscribeNavAuth = onAuthChange((user) => {
             const isAdmin = Boolean(user && user.email === ADMIN_EMAIL);
             adminLink?.classList.toggle('hidden', !isAdmin);
             mobileAdminLink?.classList.toggle('hidden', !isAdmin);
+            toolsLink?.classList.toggle('hidden', !isAdmin);
+            mobileToolsLink?.classList.toggle('hidden', !isAdmin);
           });
         }
 

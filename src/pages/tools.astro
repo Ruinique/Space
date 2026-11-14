@@ -418,23 +418,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       .map((n) => {
         const name = escapeHtml(n.name || n.hostname || n.uuid || 'Unnamed Node');
         const region = escapeHtml(n.region || n.country || n.os || '');
+        const latest = n._recent || null;
         const online =
           typeof n.online === 'boolean'
             ? n.online
-            : typeof n.status === 'string'
-              ? n.status.toLowerCase() === 'online'
-              : true;
+            : latest !== null
+              ? true
+              : typeof n.status === 'string'
+                ? n.status.toLowerCase() === 'online'
+                : false;
 
-        const cpu = Number(n.cpu_usage ?? n.cpu?.usage ?? n.cpu ?? 0);
-        const memUsed = Number(n.mem_used ?? n.ram?.used ?? 0);
-        const memTotal = Number(n.mem_total ?? n.ram?.total ?? 0);
-        const memPct = memTotal > 0 ? Math.min(100, (memUsed / memTotal) * 100) : Number(n.mem_usage ?? 0);
-        const diskUsed = Number(n.disk_used ?? n.disk?.used ?? 0);
-        const diskTotal = Number(n.disk_total ?? n.disk?.total ?? 0);
-        const diskPct = diskTotal > 0 ? Math.min(100, (diskUsed / diskTotal) * 100) : Number(n.disk_usage ?? 0);
-        const netUp = Number(n.net_out ?? n.network?.up ?? n.up ?? 0);
-        const netDown = Number(n.net_in ?? n.network?.down ?? n.down ?? 0);
-        const uptime = Number(n.uptime ?? 0);
+        const cpuRaw = latest?.cpu?.usage ?? latest?.cpu_usage ?? latest?.cpu ?? n.cpu_usage ?? n.cpu?.usage ?? n.cpu ?? 0;
+        const cpu = Number(typeof cpuRaw === 'object' ? cpuRaw?.usage ?? 0 : cpuRaw);
+        const memUsed = Number(latest?.ram?.used ?? latest?.mem_used ?? n.mem_used ?? n.ram?.used ?? 0);
+        const memTotal = Number(n.mem_total ?? latest?.ram?.total ?? n.ram?.total ?? 0);
+        const memPct = memTotal > 0 ? Math.min(100, (memUsed / memTotal) * 100) : Number(latest?.mem_usage ?? n.mem_usage ?? 0);
+        const diskUsed = Number(latest?.disk?.used ?? latest?.disk_used ?? n.disk_used ?? n.disk?.used ?? 0);
+        const diskTotal = Number(n.disk_total ?? latest?.disk?.total ?? n.disk?.total ?? 0);
+        const diskPct = diskTotal > 0 ? Math.min(100, (diskUsed / diskTotal) * 100) : Number(latest?.disk_usage ?? n.disk_usage ?? 0);
+        const netUp = Number(latest?.network?.up ?? latest?.net_out ?? n.net_out ?? n.network?.up ?? n.up ?? 0);
+        const netDown = Number(latest?.network?.down ?? latest?.net_in ?? n.net_in ?? n.network?.down ?? n.down ?? 0);
+        const uptime = Number(latest?.uptime ?? n.uptime ?? 0);
 
         return `
           <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 space-y-2.5 border border-slate-200/60 dark:border-white/5">
@@ -487,6 +491,32 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       .join('');
   }
 
+  async function komariFetchJson(targetUrl: string, cfg: KomariConfig) {
+    const headers: Record<string, string> = {};
+    let fetchUrl = targetUrl;
+
+    if (cfg.proxyUrl.trim()) {
+      const idToken = await auth?.currentUser?.getIdToken();
+      if (!idToken) {
+        throw new Error('Not signed in to Firebase');
+      }
+      headers['Authorization'] = `Bearer ${idToken}`;
+      if (cfg.token.trim()) {
+        headers['X-Komari-Token'] = cfg.token.trim();
+      }
+      const sep = cfg.proxyUrl.includes('?') ? '&' : '?';
+      fetchUrl = `${cfg.proxyUrl.trim()}${sep}url=${encodeURIComponent(targetUrl)}`;
+    } else if (cfg.token.trim()) {
+      headers['Authorization'] = `Bearer ${cfg.token.trim()}`;
+    }
+
+    const res = await fetch(fetchUrl, { headers });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  }
+
   async function fetchKomariNodes() {
     const cfg = loadConfig();
     const badge = document.getElementById('komari-status-badge');
@@ -508,34 +538,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     try {
-      const headers: Record<string, string> = {};
-      let fetchUrl = endpoint;
-
-      if (cfg.proxyUrl.trim()) {
-        const idToken = await auth?.currentUser?.getIdToken();
-        if (!idToken) {
-          throw new Error('Not signed in to Firebase');
-        }
-        headers['Authorization'] = `Bearer ${idToken}`;
-        if (cfg.token.trim()) {
-          headers['X-Komari-Token'] = cfg.token.trim();
-        }
-        const sep = cfg.proxyUrl.includes('?') ? '&' : '?';
-        fetchUrl = `${cfg.proxyUrl.trim()}${sep}url=${encodeURIComponent(endpoint)}`;
-      } else if (cfg.token.trim()) {
-        headers['Authorization'] = `Bearer ${cfg.token.trim()}`;
-      }
-
-      const res = await fetch(fetchUrl, { headers });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      }
-      const data = await res.json();
+      const data = await komariFetchJson(endpoint, cfg);
       const nodes = normalizeNodes(data);
+
+      // Komari /api/nodes only returns static specs; live telemetry lives at /api/recent/:uuid
+      await Promise.allSettled(
+        nodes.map(async (node) => {
+          if (!node?.uuid) return;
+          try {
+            const recentPayload = await komariFetchJson(`${cleanBase}/api/recent/${encodeURIComponent(node.uuid)}`, cfg);
+            const arr = Array.isArray(recentPayload)
+              ? recentPayload
+              : Array.isArray(recentPayload?.data)
+                ? recentPayload.data
+                : [];
+            if (arr.length > 0) {
+              node._recent = arr[arr.length - 1];
+            }
+          } catch {
+            // keep node metadata even if recent telemetry fails
+          }
+        })
+      );
+
       renderNodes(nodes);
+      const onlineCount = nodes.filter((n) => n._recent !== undefined || n.online === true).length;
 
       if (badge) {
-        badge.textContent = `● 在线 (${nodes.length})`;
+        badge.textContent = `● 在线 (${onlineCount}/${nodes.length})`;
         badge.className = 'px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
       }
       if (updatedEl) {

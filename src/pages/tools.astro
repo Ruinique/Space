@@ -70,6 +70,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           订阅分发与流量
         </button>
         <button
+          id="tool-tab-uhd"
+          type="button"
+          class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          UHDNOW 媒体库
+        </button>
+        <button
           id="tool-tab-billing"
           type="button"
           class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
@@ -81,7 +88,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           type="button"
           class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
         >
-          服务与续费
+          续费账本
         </button>
       </div>
 
@@ -447,27 +454,42 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </section>
 
-      <!-- Tool 4: Services & Monthly Renewals (UHDNOW + Recurring Tracker) -->
-      <section id="tool-panel-expense" class="hidden space-y-4">
-        <!-- UHDNOW Quick Card -->
-        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+      <!-- Tool 4: UHDNOW Independent Tool (API Status + Remaining Days + Emby Lines) -->
+      <section id="tool-panel-uhd" class="hidden space-y-4">
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
                 UHDNOW · 4K Emby 媒体库
               </h2>
               <p class="text-xs text-[#6c7883] mt-0.5">
-                直达个人影音库与客户端线路备忘（仅管理员可见，跨设备同步）
+                通过 API 查询账号剩余天数 / 流量 / Emby 在线状态与全部可用线路（配置跨设备同步）
               </p>
             </div>
-            <div class="flex items-center gap-2 text-xs">
+            <div class="flex flex-wrap items-center gap-2 text-xs">
               <a
                 href="https://www.uhdnow.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="px-3.5 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity"
+                class="px-3 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity"
               >
-                打开 UHDNOW ↗
+                官网 ↗
+              </a>
+              <a
+                href="https://www.uhdnow.com/stream"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/10 text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                网页播放 ↗
+              </a>
+              <a
+                href="https://www.uhdnow.com/speed"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/10 text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                测速 ↗
               </a>
               <a
                 href="https://docs.uhdnow.com/"
@@ -477,32 +499,131 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               >
                 文档 ↗
               </a>
-            </div>
-          </div>
-
-          <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 space-y-2 text-xs">
-            <label class="block text-[#6c7883]" for="uhd-note-input">
-              Emby 线路 / 账号备忘（如服务器地址、端口、套餐备注，方便在 Infuse / Emby 客户端快速复制）
-            </label>
-            <div class="flex flex-wrap gap-2">
-              <input
-                id="uhd-note-input"
-                type="text"
-                placeholder="例如：emby.uhdnow.com · 443 · China/Global"
-                class="flex-1 min-w-[200px] rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
-              />
               <button
-                id="uhd-note-save-btn"
+                id="uhd-refresh-btn"
                 type="button"
-                class="px-3.5 py-2 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] font-medium hover:opacity-85 cursor-pointer"
+                class="px-3 py-1.5 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] font-medium hover:opacity-85 cursor-pointer"
               >
-                保存备忘
+                刷新 API
+              </button>
+              <button
+                id="uhd-toggle-config-btn"
+                type="button"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/10 text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                API 配置
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Monthly Renewals & Subscriptions Tracker -->
+          <!-- UHDNOW API Config Form -->
+          <form id="uhd-config-form" class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-4 space-y-3 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="block space-y-1">
+                <span class="text-[#6c7883]">UHDNOW 状态 API URL（用于拉取剩余天数/套餐）</span>
+                <input
+                  id="uhd-api-url"
+                  type="url"
+                  placeholder="例如：https://www.uhdnow.com/api/user/info"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1">
+                <span class="text-[#6c7883]">API 鉴权 Token / Bearer（或留空直连）</span>
+                <input
+                  id="uhd-api-token"
+                  type="password"
+                  placeholder="Bearer Token 或 API Key"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1">
+                <span class="text-[#6c7883]">Emby 服务器地址（直连拉取媒体库与多线路）</span>
+                <input
+                  id="uhd-emby-url"
+                  type="url"
+                  placeholder="例如：https://emby.uhdnow.com"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1">
+                <span class="text-[#6c7883]">Emby Token / API Key（X-Emby-Token）</span>
+                <input
+                  id="uhd-emby-token"
+                  type="password"
+                  placeholder="Emby 客户端或后台获取的 Token"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1 sm:col-span-2">
+                <span class="text-[#6c7883]">CORS 代理地址（可选，若官网 API 跨域拦截可填 Cloud Function 代理）</span>
+                <input
+                  id="uhd-proxy-url"
+                  type="url"
+                  placeholder="可选：https://us-central1-...cloudfunctions.net/komariProxy"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1 sm:col-span-2">
+                <span class="text-[#6c7883]">Emby 线路 / 账号备忘（Infuse / Emby 客户端快速复制）</span>
+                <input
+                  id="uhd-note-input"
+                  type="text"
+                  placeholder="例如：emby.uhdnow.com · 443 · China/Global"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-[11px] text-[#6c7883]">
+                自动识别常见到期字段（<code>expire_at</code> / <code>expired_at</code> / <code>remaining_days</code> 等）与 Emby <code>/emby/System/Ext/ServerDomains</code>。
+              </span>
+              <button
+                type="submit"
+                class="px-4 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                保存并同步
+              </button>
+            </div>
+          </form>
+
+          <!-- UHDNOW Summary Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[#6c7883]">账号剩余天数</div>
+              <div id="uhd-days-val" class="text-lg font-semibold text-slate-900 dark:text-[#f5f5f5] mt-1">未配置 API</div>
+              <div id="uhd-expire-sub" class="text-[11px] text-[#6c7883] mt-0.5">-</div>
+            </div>
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[#6c7883]">套餐与流量</div>
+              <div id="uhd-plan-val" class="text-lg font-semibold text-slate-900 dark:text-[#f5f5f5] mt-1">-</div>
+              <div id="uhd-traffic-sub" class="text-[11px] text-[#6c7883] mt-0.5">-</div>
+            </div>
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[#6c7883]">Emby 服务端</div>
+              <div id="uhd-emby-status" class="text-lg font-semibold text-slate-900 dark:text-[#f5f5f5] mt-1">未连接</div>
+              <div id="uhd-emby-counts" class="text-[11px] text-[#6c7883] mt-0.5">-</div>
+            </div>
+          </div>
+
+          <!-- Emby ServerDomains Lines -->
+          <div id="uhd-domains-box" class="hidden space-y-2 text-xs">
+            <div class="font-medium text-slate-900 dark:text-[#f5f5f5]">可用 Emby 线路列表（ServerDomains）</div>
+            <div id="uhd-domains-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+          </div>
+
+          <!-- Raw API Debug (collapsible) -->
+          <details id="uhd-raw-details" class="hidden rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3 text-xs">
+            <summary class="cursor-pointer text-[#6c7883] hover:text-slate-900 dark:hover:text-white">
+              查看 API 原始响应 / 错误详情
+            </summary>
+            <pre id="uhd-raw-json" class="mt-2 overflow-x-auto font-mono text-[11px] text-slate-800 dark:text-slate-200 whitespace-pre-wrap"></pre>
+          </details>
+        </div>
+      </section>
+
+      <!-- Tool 5: Monthly Renewals & Subscriptions Tracker -->
+      <section id="tool-panel-expense" class="hidden space-y-4">
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -510,7 +631,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
                 月度续费与服务账本
               </h2>
               <p class="text-xs text-[#6c7883] mt-0.5">
-                记录每月固定订阅（UHDNOW、VPS、机场等），到期倒计时与一键顺延 1 个月
+                记录每月固定订阅（VPS、机场、流媒体等），到期倒计时与一键顺延 1 个月
               </p>
             </div>
             <div class="text-xs font-medium px-3 py-1.5 rounded-full bg-[#f1f4f8] dark:bg-[#0e1621] text-slate-900 dark:text-[#f5f5f5]">
@@ -1008,9 +1129,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           applySubConfig(data.subHub);
         }
 
-        if (typeof data.uhdNote === 'string') {
-          localStorage.setItem(UHD_NOTE_KEY, data.uhdNote);
-          if (uhdNoteInput) uhdNoteInput.value = data.uhdNote;
+        if (data.uhdConfig && typeof data.uhdConfig === 'object') {
+          applyUhdConfig(data.uhdConfig);
+        } else if (typeof data.uhdNote === 'string') {
+          applyUhdConfig({ note: data.uhdNote });
         }
 
         if (Array.isArray(data.renewals)) {
@@ -1023,6 +1145,311 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
     };
 
+    interface UhdConfig {
+      apiUrl: string;
+      apiToken: string;
+      embyUrl: string;
+      embyToken: string;
+      proxyUrl: string;
+      note: string;
+    }
+
+    const UHD_CFG_KEY = 'space_uhd_config_v2';
+    const uhdConfigForm = document.getElementById('uhd-config-form') as HTMLFormElement | null;
+    const uhdApiUrlInput = document.getElementById('uhd-api-url') as HTMLInputElement | null;
+    const uhdApiTokenInput = document.getElementById('uhd-api-token') as HTMLInputElement | null;
+    const uhdEmbyUrlInput = document.getElementById('uhd-emby-url') as HTMLInputElement | null;
+    const uhdEmbyTokenInput = document.getElementById('uhd-emby-token') as HTMLInputElement | null;
+    const uhdProxyUrlInput = document.getElementById('uhd-proxy-url') as HTMLInputElement | null;
+    const uhdNoteInput = document.getElementById('uhd-note-input') as HTMLInputElement | null;
+
+    let currentUhdCfg: UhdConfig = {
+      apiUrl: '',
+      apiToken: '',
+      embyUrl: '',
+      embyToken: '',
+      proxyUrl: '',
+      note: localStorage.getItem('space_uhd_note_v1') || '',
+    };
+
+    const loadUhdCfg = (): UhdConfig => {
+      try {
+        const raw = localStorage.getItem(UHD_CFG_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          return {
+            apiUrl: typeof p.apiUrl === 'string' ? p.apiUrl : '',
+            apiToken: typeof p.apiToken === 'string' ? p.apiToken : '',
+            embyUrl: typeof p.embyUrl === 'string' ? p.embyUrl : '',
+            embyToken: typeof p.embyToken === 'string' ? p.embyToken : '',
+            proxyUrl: typeof p.proxyUrl === 'string' ? p.proxyUrl : '',
+            note: typeof p.note === 'string' ? p.note : '',
+          };
+        }
+      } catch {
+        // ignore
+      }
+      return currentUhdCfg;
+    };
+
+    const applyUhdConfig = (partial: Partial<UhdConfig>) => {
+      currentUhdCfg = {
+        ...currentUhdCfg,
+        ...partial,
+      };
+      localStorage.setItem(UHD_CFG_KEY, JSON.stringify(currentUhdCfg));
+      if (uhdApiUrlInput) uhdApiUrlInput.value = currentUhdCfg.apiUrl;
+      if (uhdApiTokenInput) uhdApiTokenInput.value = currentUhdCfg.apiToken;
+      if (uhdEmbyUrlInput) uhdEmbyUrlInput.value = currentUhdCfg.embyUrl;
+      if (uhdEmbyTokenInput) uhdEmbyTokenInput.value = currentUhdCfg.embyToken;
+      if (uhdProxyUrlInput) uhdProxyUrlInput.value = currentUhdCfg.proxyUrl;
+      if (uhdNoteInput) uhdNoteInput.value = currentUhdCfg.note;
+      if (currentUhdCfg.apiUrl || currentUhdCfg.embyUrl) {
+        uhdConfigForm?.classList.add('hidden');
+      }
+    };
+
+    applyUhdConfig(loadUhdCfg());
+
+    document.getElementById('uhd-toggle-config-btn')?.addEventListener('click', () => {
+      uhdConfigForm?.classList.toggle('hidden');
+    });
+
+    const parseExpireDate = (val: unknown): Date | null => {
+      if (val === null || val === undefined || val === '') return null;
+      if (typeof val === 'number' && Number.isFinite(val)) {
+        const ms = val > 1e12 ? val : val * 1000;
+        const d = new Date(ms);
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+      if (typeof val === 'string') {
+        const num = Number(val);
+        if (Number.isFinite(num) && val.trim() !== '') {
+          const ms = num > 1e12 ? num : num * 1000;
+          const d = new Date(ms);
+          return Number.isNaN(d.getTime()) ? null : d;
+        }
+        const d = new Date(val);
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+      return null;
+    };
+
+    const pickField = (obj: any, keys: string[]): unknown => {
+      if (!obj || typeof obj !== 'object') return undefined;
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
+      }
+      return undefined;
+    };
+
+    const fetchUhdStatus = async () => {
+      const cfg = loadUhdCfg();
+      const daysEl = document.getElementById('uhd-days-val');
+      const expireSubEl = document.getElementById('uhd-expire-sub');
+      const planEl = document.getElementById('uhd-plan-val');
+      const trafficSubEl = document.getElementById('uhd-traffic-sub');
+      const embyStatusEl = document.getElementById('uhd-emby-status');
+      const embyCountsEl = document.getElementById('uhd-emby-counts');
+      const domainsBox = document.getElementById('uhd-domains-box');
+      const domainsList = document.getElementById('uhd-domains-list');
+      const rawDetails = document.getElementById('uhd-raw-details');
+      const rawJsonEl = document.getElementById('uhd-raw-json');
+
+      const debugChunks: Record<string, unknown> = {};
+
+      // 1. Fetch UHDNOW account / subscription API
+      if (!cfg.apiUrl) {
+        if (daysEl) daysEl.textContent = '未配置 API';
+        if (expireSubEl) expireSubEl.textContent = '点击右上角「API 配置」填入状态接口';
+      } else {
+        if (daysEl) daysEl.textContent = '查询中...';
+        try {
+          const headers: Record<string, string> = {};
+          let targetUrl = cfg.apiUrl.trim();
+          if (cfg.apiToken.trim()) {
+            const tok = cfg.apiToken.trim();
+            headers['Authorization'] = tok.toLowerCase().startsWith('bearer ') ? tok : `Bearer ${tok}`;
+          }
+          if (cfg.proxyUrl.trim()) {
+            const idToken = await auth?.currentUser?.getIdToken();
+            if (idToken) {
+              headers['Authorization'] = `Bearer ${idToken}`;
+            }
+            if (cfg.apiToken.trim()) {
+              headers['X-Upstream-Authorization'] = cfg.apiToken.trim();
+            }
+            const sep = cfg.proxyUrl.includes('?') ? '&' : '?';
+            targetUrl = `${cfg.proxyUrl.trim()}${sep}url=${encodeURIComponent(targetUrl)}`;
+          }
+
+          const res = await fetch(targetUrl, { headers });
+          if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+          const payload = await res.json();
+          debugChunks.accountApi = payload;
+
+          const root = payload?.data?.user || payload?.data?.subscription || payload?.data || payload?.user || payload?.subscription || payload;
+          const rawDays = pickField(root, ['remaining_days', 'days_left', 'remain_days', 'left_days']);
+          const rawExpire = pickField(root, [
+            'expired_at',
+            'expire_at',
+            'expires_at',
+            'expire_time',
+            'expireTime',
+            'end_date',
+            'end_at',
+            'next_billing_date',
+            'valid_until',
+          ]);
+
+          const expireDate = parseExpireDate(rawExpire);
+          let daysLeft: number | null = typeof rawDays === 'number' ? rawDays : rawDays !== undefined ? Number(rawDays) : null;
+          if ((daysLeft === null || !Number.isFinite(daysLeft)) && expireDate) {
+            daysLeft = Math.ceil((expireDate.getTime() - Date.now()) / 86400000);
+          }
+
+          if (daysEl) {
+            if (daysLeft !== null && Number.isFinite(daysLeft)) {
+              daysEl.textContent = daysLeft < 0 ? `已过期 ${Math.abs(daysLeft)} 天` : daysLeft === 0 ? '今天到期' : `剩余 ${daysLeft} 天`;
+              daysEl.className = `text-lg font-semibold mt-1 ${
+                daysLeft <= 3 ? 'text-rose-500' : daysLeft <= 7 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
+              }`;
+            } else {
+              daysEl.textContent = '已连接 (未识别到期字段)';
+            }
+          }
+          if (expireSubEl) {
+            expireSubEl.textContent = expireDate ? `到期时间：${expireDate.toISOString().slice(0, 10)}` : '可在下方展开原始 JSON 核对字段';
+          }
+
+          const planName = pickField(root, ['plan_name', 'plan', 'package_name', 'level', 'group_name', 'tier']);
+          if (planEl) planEl.textContent = planName ? String(planName) : '已激活';
+
+          const usedBytes = Number(pickField(root, ['used_traffic', 'traffic_used', 'used_bytes']) ?? (Number(root?.u || 0) + Number(root?.d || 0)));
+          const totalBytes = Number(pickField(root, ['transfer_enable', 'total_traffic', 'traffic_limit', 'total_bytes']) ?? 0);
+          if (trafficSubEl) {
+            if (totalBytes > 0) {
+              trafficSubEl.textContent = `已用 ${formatBytes(usedBytes)} / ${formatBytes(totalBytes)}`;
+            } else if (usedBytes > 0) {
+              trafficSubEl.textContent = `已用 ${formatBytes(usedBytes)}`;
+            } else {
+              trafficSubEl.textContent = '流量数据未返回';
+            }
+          }
+        } catch (err: any) {
+          debugChunks.accountApiError = err?.message || String(err);
+          if (daysEl) {
+            daysEl.textContent = 'API 请求失败';
+            daysEl.className = 'text-lg font-semibold text-rose-500 mt-1';
+          }
+          if (expireSubEl) {
+            expireSubEl.textContent = `${err?.message || 'CORS / 网络错误'}`;
+          }
+        }
+      }
+
+      // 2. Fetch Emby Server Info + Counts + ServerDomains (Emby supports CORS by default)
+      if (!cfg.embyUrl) {
+        if (embyStatusEl) embyStatusEl.textContent = '未配置 Emby';
+        if (embyCountsEl) embyCountsEl.textContent = '填入 Emby 地址可自动获取线路';
+        domainsBox?.classList.add('hidden');
+      } else {
+        const cleanEmby = cfg.embyUrl.trim().replace(/\/+$/, '');
+        const tokenParam = cfg.embyToken.trim() ? `?X-Emby-Token=${encodeURIComponent(cfg.embyToken.trim())}` : '';
+        if (embyStatusEl) embyStatusEl.textContent = '连接中...';
+        try {
+          const [infoRes, countsRes, domainsRes] = await Promise.allSettled([
+            fetch(`${cleanEmby}/emby/System/Info${tokenParam}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Info HTTP ${r.status}`)))),
+            fetch(`${cleanEmby}/emby/Items/Counts${tokenParam}`).then((r) => (r.ok ? r.json() : null)),
+            fetch(`${cleanEmby}/emby/System/Ext/ServerDomains${tokenParam}`).then((r) => (r.ok ? r.json() : null)),
+          ]);
+
+          if (infoRes.status === 'fulfilled' && infoRes.value) {
+            debugChunks.embyInfo = infoRes.value;
+            if (embyStatusEl) {
+              embyStatusEl.textContent = infoRes.value.ServerName || 'Emby 在线';
+              embyStatusEl.className = 'text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-1';
+            }
+            const ver = infoRes.value.Version ? `v${infoRes.value.Version}` : 'Online';
+            if (countsRes.status === 'fulfilled' && countsRes.value) {
+              const c = countsRes.value;
+              if (embyCountsEl) {
+                embyCountsEl.textContent = `${ver} · 电影 ${c.MovieCount ?? 0} · 剧集 ${c.SeriesCount ?? 0}`;
+              }
+            } else if (embyCountsEl) {
+              embyCountsEl.textContent = ver;
+            }
+          } else {
+            const reason = infoRes.status === 'rejected' ? infoRes.reason?.message : 'HTTP Error';
+            debugChunks.embyError = reason;
+            if (embyStatusEl) {
+              embyStatusEl.textContent = 'Emby 连接失败';
+              embyStatusEl.className = 'text-lg font-semibold text-rose-500 mt-1';
+            }
+            if (embyCountsEl) embyCountsEl.textContent = String(reason || '');
+          }
+
+          if (domainsRes.status === 'fulfilled' && domainsRes.value?.ok && Array.isArray(domainsRes.value?.data)) {
+            debugChunks.serverDomains = domainsRes.value.data;
+            if (domainsList && domainsBox) {
+              domainsBox.classList.remove('hidden');
+              domainsList.innerHTML = domainsRes.value.data
+                .map(
+                  (d: any) => `
+                  <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] px-3 py-2">
+                    <div class="min-w-0">
+                      <div class="font-medium text-slate-900 dark:text-[#f5f5f5] truncate">${escapeHtml(d.name || 'Line')}</div>
+                      <div class="font-mono text-[11px] text-[#6c7883] truncate">${escapeHtml(d.url || '')}</div>
+                    </div>
+                    <button type="button" data-copy-emby="${escapeHtml(d.url || '')}" class="shrink-0 px-2.5 py-1 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] cursor-pointer">
+                      复制
+                    </button>
+                  </div>`
+                )
+                .join('');
+              domainsList.querySelectorAll<HTMLButtonElement>('[data-copy-emby]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const u = btn.dataset.copyEmby || '';
+                  if (!u) return;
+                  navigator.clipboard?.writeText(u);
+                  btn.textContent = '已复制 ✓';
+                  setTimeout(() => {
+                    btn.textContent = '复制';
+                  }, 1200);
+                });
+              });
+            }
+          } else {
+            domainsBox?.classList.add('hidden');
+          }
+        } catch (err: any) {
+          debugChunks.embyException = err?.message || String(err);
+        }
+      }
+
+      if (Object.keys(debugChunks).length > 0 && rawDetails && rawJsonEl) {
+        rawDetails.classList.remove('hidden');
+        rawJsonEl.textContent = JSON.stringify(debugChunks, null, 2);
+      }
+    };
+
+    uhdConfigForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const next: UhdConfig = {
+        apiUrl: (uhdApiUrlInput?.value || '').trim(),
+        apiToken: (uhdApiTokenInput?.value || '').trim(),
+        embyUrl: (uhdEmbyUrlInput?.value || '').trim().replace(/\/+$/, ''),
+        embyToken: (uhdEmbyTokenInput?.value || '').trim(),
+        proxyUrl: (uhdProxyUrlInput?.value || '').trim(),
+        note: (uhdNoteInput?.value || '').trim(),
+      };
+      applyUhdConfig(next);
+      await syncSettingsToFirestore({ uhdConfig: next });
+      await fetchUhdStatus();
+    });
+
+    document.getElementById('uhd-refresh-btn')?.addEventListener('click', fetchUhdStatus);
+
     interface RenewalItem {
       name: string;
       url: string;
@@ -1030,28 +1457,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       nextDate: string;
     }
 
-    const UHD_NOTE_KEY = 'space_uhd_note_v1';
     const RENEWALS_KEY = 'space_renewals_v1';
-    const uhdNoteInput = document.getElementById('uhd-note-input') as HTMLInputElement | null;
     const renewalsListEl = document.getElementById('renewals-list');
     const renewalsTotalEl = document.getElementById('renewals-monthly-total');
-
-    if (uhdNoteInput) {
-      uhdNoteInput.value = localStorage.getItem(UHD_NOTE_KEY) || '';
-    }
-
-    document.getElementById('uhd-note-save-btn')?.addEventListener('click', async () => {
-      const val = (uhdNoteInput?.value || '').trim();
-      localStorage.setItem(UHD_NOTE_KEY, val);
-      await syncSettingsToFirestore({ uhdNote: val });
-      const btn = document.getElementById('uhd-note-save-btn');
-      if (btn) {
-        btn.textContent = '已保存 ✓';
-        setTimeout(() => {
-          btn.textContent = '保存备忘';
-        }, 1500);
-      }
-    });
 
     const defaultNextMonthDate = () => {
       const d = new Date();
@@ -1416,27 +1824,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     const tabSub = document.getElementById('tool-tab-sub');
     const panelSub = document.getElementById('tool-panel-sub');
+    const tabUhd = document.getElementById('tool-tab-uhd');
+    const panelUhd = document.getElementById('tool-panel-uhd');
 
-    const setActiveTool = (tool: 'komari' | 'sub' | 'billing' | 'expense') => {
+    const setActiveTool = (tool: 'komari' | 'sub' | 'uhd' | 'billing' | 'expense') => {
       const activeCls = 'px-4 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] transition-colors cursor-pointer';
       const inactiveCls = 'px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer';
       if (tabKomari) tabKomari.className = tool === 'komari' ? activeCls : inactiveCls;
       if (tabSub) tabSub.className = tool === 'sub' ? activeCls : inactiveCls;
+      if (tabUhd) tabUhd.className = tool === 'uhd' ? activeCls : inactiveCls;
       if (tabBilling) tabBilling.className = tool === 'billing' ? activeCls : inactiveCls;
       if (tabExpense) tabExpense.className = tool === 'expense' ? activeCls : inactiveCls;
       panelKomari?.classList.toggle('hidden', tool !== 'komari');
       panelSub?.classList.toggle('hidden', tool !== 'sub');
+      panelUhd?.classList.toggle('hidden', tool !== 'uhd');
       panelBilling?.classList.toggle('hidden', tool !== 'billing');
       panelExpense?.classList.toggle('hidden', tool !== 'expense');
       if (tool === 'billing') {
         fetchBillingReport();
       } else if (tool === 'sub') {
         inspectSubTraffic();
+      } else if (tool === 'uhd') {
+        fetchUhdStatus();
       }
     };
 
     tabKomari?.addEventListener('click', () => setActiveTool('komari'));
     tabSub?.addEventListener('click', () => setActiveTool('sub'));
+    tabUhd?.addEventListener('click', () => setActiveTool('uhd'));
     tabBilling?.addEventListener('click', () => setActiveTool('billing'));
     tabExpense?.addEventListener('click', () => setActiveTool('expense'));
 

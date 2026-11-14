@@ -519,70 +519,100 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <!-- UHDNOW API Config Form -->
           <form id="uhd-config-form" class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-4 space-y-3 text-xs">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="block space-y-1">
-                <span class="text-[#6c7883]">UHDNOW 状态 API URL（用于拉取剩余天数/套餐）</span>
-                <input
-                  id="uhd-api-url"
-                  type="url"
-                  placeholder="例如：https://www.uhdnow.com/api/user/info"
-                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
-                />
-              </label>
-              <label class="block space-y-1">
-                <span class="text-[#6c7883]">API 鉴权 Token / Bearer（或留空直连）</span>
-                <input
-                  id="uhd-api-token"
-                  type="password"
-                  placeholder="Bearer Token 或 API Key"
-                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
-                />
-              </label>
-              <label class="block space-y-1">
-                <span class="text-[#6c7883]">Emby 服务器地址（直连拉取媒体库与多线路）</span>
+              <label class="block space-y-1 sm:col-span-2">
+                <span class="text-[#6c7883]">Emby 服务器地址（默认按文档填写，如有专属线路可替换为「导入 Emby」地址）</span>
                 <input
                   id="uhd-emby-url"
                   type="url"
-                  placeholder="例如：https://emby.uhdnow.com"
+                  value="https://emby.uhdnow.com"
+                  placeholder="https://emby.uhdnow.com"
                   class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
                 />
               </label>
               <label class="block space-y-1">
-                <span class="text-[#6c7883]">Emby Token / API Key（X-Emby-Token）</span>
+                <span class="text-[#6c7883]">UHD 用户名</span>
                 <input
-                  id="uhd-emby-token"
+                  id="uhd-username"
+                  type="text"
+                  autocomplete="username"
+                  placeholder="填写你的 UHD 账号用户名"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </label>
+              <label class="block space-y-1">
+                <span class="text-[#6c7883]">UHD 密码</span>
+                <input
+                  id="uhd-password"
                   type="password"
-                  placeholder="Emby 客户端或后台获取的 Token"
+                  autocomplete="current-password"
+                  placeholder="填写你的 UHD 账号密码"
                   class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
                 />
               </label>
               <label class="block space-y-1 sm:col-span-2">
-                <span class="text-[#6c7883]">CORS 代理地址（可选，若官网 API 跨域拦截可填 Cloud Function 代理）</span>
-                <input
-                  id="uhd-proxy-url"
-                  type="url"
-                  placeholder="可选：https://us-central1-...cloudfunctions.net/komariProxy"
-                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
-                />
-              </label>
-              <label class="block space-y-1 sm:col-span-2">
-                <span class="text-[#6c7883]">Emby 线路 / 账号备忘（Infuse / Emby 客户端快速复制）</span>
+                <span class="text-[#6c7883]">线路 / 账号备忘（可选，方便 Infuse / Emby 客户端复制）</span>
                 <input
                   id="uhd-note-input"
                   type="text"
-                  placeholder="例如：emby.uhdnow.com · 443 · China/Global"
+                  placeholder="例如：Global 线路 · 443"
                   class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
                 />
               </label>
             </div>
+
+            <details class="rounded-lg bg-white/60 dark:bg-[#182533]/60 px-3 py-2">
+              <summary class="cursor-pointer text-[#6c7883] hover:text-slate-900 dark:hover:text-white">
+                高级 API / 代理设置（可选：自定义官网状态 API / 手动 Token）
+              </summary>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                <label class="block space-y-1">
+                  <span class="text-[#6c7883]">UHDNOW 状态 API URL（拉取剩余天数/流量）</span>
+                  <input
+                    id="uhd-api-url"
+                    type="url"
+                    placeholder="https://www.uhdnow.com/api/..."
+                    class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+                  />
+                </label>
+                <label class="block space-y-1">
+                  <span class="text-[#6c7883]">API 鉴权 Token / Bearer</span>
+                  <input
+                    id="uhd-api-token"
+                    type="password"
+                    placeholder="Bearer Token 或 API Key"
+                    class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+                  />
+                </label>
+                <label class="block space-y-1">
+                  <span class="text-[#6c7883]">手动 Emby Token（留空则通过账密自动登录换取）</span>
+                  <input
+                    id="uhd-emby-token"
+                    type="password"
+                    placeholder="自动登录获取，无需手动填写"
+                    class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+                  />
+                </label>
+                <label class="block space-y-1">
+                  <span class="text-[#6c7883]">CORS 代理地址（可选）</span>
+                  <input
+                    id="uhd-proxy-url"
+                    type="url"
+                    placeholder="https://us-central1-...cloudfunctions.net/komariProxy"
+                    class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+                  />
+                </label>
+              </div>
+            </details>
+
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-[11px] text-[#6c7883]">
-                自动识别常见到期字段（<code>expire_at</code> / <code>expired_at</code> / <code>remaining_days</code> 等）与 Emby <code>/emby/System/Ext/ServerDomains</code>。
+                填写账号密码后将自动调用 Emby <code>AuthenticateByName</code> 登录换取 Token 并同步 <code>ServerDomains</code> 线路。
               </span>
               <button
                 type="submit"
                 class="px-4 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity cursor-pointer"
               >
-                保存并同步
+                登录并同步
               </button>
             </div>
           </form>
@@ -1150,24 +1180,33 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       apiToken: string;
       embyUrl: string;
       embyToken: string;
+      embyUserId: string;
+      username: string;
+      password: string;
       proxyUrl: string;
       note: string;
     }
 
+    const DEFAULT_UHD_EMBY_URL = 'https://emby.uhdnow.com';
     const UHD_CFG_KEY = 'space_uhd_config_v2';
     const uhdConfigForm = document.getElementById('uhd-config-form') as HTMLFormElement | null;
     const uhdApiUrlInput = document.getElementById('uhd-api-url') as HTMLInputElement | null;
     const uhdApiTokenInput = document.getElementById('uhd-api-token') as HTMLInputElement | null;
     const uhdEmbyUrlInput = document.getElementById('uhd-emby-url') as HTMLInputElement | null;
     const uhdEmbyTokenInput = document.getElementById('uhd-emby-token') as HTMLInputElement | null;
+    const uhdUsernameInput = document.getElementById('uhd-username') as HTMLInputElement | null;
+    const uhdPasswordInput = document.getElementById('uhd-password') as HTMLInputElement | null;
     const uhdProxyUrlInput = document.getElementById('uhd-proxy-url') as HTMLInputElement | null;
     const uhdNoteInput = document.getElementById('uhd-note-input') as HTMLInputElement | null;
 
     let currentUhdCfg: UhdConfig = {
       apiUrl: '',
       apiToken: '',
-      embyUrl: '',
+      embyUrl: DEFAULT_UHD_EMBY_URL,
       embyToken: '',
+      embyUserId: '',
+      username: '',
+      password: '',
       proxyUrl: '',
       note: localStorage.getItem('space_uhd_note_v1') || '',
     };
@@ -1180,8 +1219,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           return {
             apiUrl: typeof p.apiUrl === 'string' ? p.apiUrl : '',
             apiToken: typeof p.apiToken === 'string' ? p.apiToken : '',
-            embyUrl: typeof p.embyUrl === 'string' ? p.embyUrl : '',
+            embyUrl: typeof p.embyUrl === 'string' && p.embyUrl ? p.embyUrl : DEFAULT_UHD_EMBY_URL,
             embyToken: typeof p.embyToken === 'string' ? p.embyToken : '',
+            embyUserId: typeof p.embyUserId === 'string' ? p.embyUserId : '',
+            username: typeof p.username === 'string' ? p.username : '',
+            password: typeof p.password === 'string' ? p.password : '',
             proxyUrl: typeof p.proxyUrl === 'string' ? p.proxyUrl : '',
             note: typeof p.note === 'string' ? p.note : '',
           };
@@ -1196,15 +1238,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       currentUhdCfg = {
         ...currentUhdCfg,
         ...partial,
+        embyUrl: partial.embyUrl || currentUhdCfg.embyUrl || DEFAULT_UHD_EMBY_URL,
       };
       localStorage.setItem(UHD_CFG_KEY, JSON.stringify(currentUhdCfg));
       if (uhdApiUrlInput) uhdApiUrlInput.value = currentUhdCfg.apiUrl;
       if (uhdApiTokenInput) uhdApiTokenInput.value = currentUhdCfg.apiToken;
       if (uhdEmbyUrlInput) uhdEmbyUrlInput.value = currentUhdCfg.embyUrl;
       if (uhdEmbyTokenInput) uhdEmbyTokenInput.value = currentUhdCfg.embyToken;
+      if (uhdUsernameInput) uhdUsernameInput.value = currentUhdCfg.username;
+      if (uhdPasswordInput) uhdPasswordInput.value = currentUhdCfg.password;
       if (uhdProxyUrlInput) uhdProxyUrlInput.value = currentUhdCfg.proxyUrl;
       if (uhdNoteInput) uhdNoteInput.value = currentUhdCfg.note;
-      if (currentUhdCfg.apiUrl || currentUhdCfg.embyUrl) {
+      if (currentUhdCfg.embyToken || (currentUhdCfg.username && currentUhdCfg.password) || currentUhdCfg.apiUrl) {
         uhdConfigForm?.classList.add('hidden');
       }
     };
@@ -1348,16 +1393,46 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         }
       }
 
-      // 2. Fetch Emby Server Info + Counts + ServerDomains (Emby supports CORS by default)
+      // 2. Authenticate with Emby (if needed) & fetch Server Info + Counts + ServerDomains
       if (!cfg.embyUrl) {
         if (embyStatusEl) embyStatusEl.textContent = '未配置 Emby';
         if (embyCountsEl) embyCountsEl.textContent = '填入 Emby 地址可自动获取线路';
         domainsBox?.classList.add('hidden');
       } else {
         const cleanEmby = cfg.embyUrl.trim().replace(/\/+$/, '');
-        const tokenParam = cfg.embyToken.trim() ? `?X-Emby-Token=${encodeURIComponent(cfg.embyToken.trim())}` : '';
         if (embyStatusEl) embyStatusEl.textContent = '连接中...';
         try {
+          let activeToken = cfg.embyToken.trim();
+          let activeUserId = cfg.embyUserId.trim();
+
+          if (!activeToken && cfg.username.trim() && cfg.password) {
+            const authRes = await fetch(`${cleanEmby}/emby/Users/AuthenticateByName`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Emby-Authorization': 'MediaBrowser Client="SpaceToolbox", Device="Web", DeviceId="space-toolbox-web", Version="1.0.0"',
+              },
+              body: JSON.stringify({ Username: cfg.username.trim(), Pw: cfg.password }),
+            });
+            if (!authRes.ok) {
+              throw new Error(`Emby 登录失败 (HTTP ${authRes.status})`);
+            }
+            const authData = await authRes.json();
+            debugChunks.embyAuth = {
+              User: authData?.User?.Name,
+              UserId: authData?.User?.Id,
+              ServerId: authData?.ServerId,
+              Policy: authData?.User?.Policy,
+            };
+            if (authData?.AccessToken) {
+              activeToken = authData.AccessToken;
+              activeUserId = authData?.User?.Id || '';
+              applyUhdConfig({ embyToken: activeToken, embyUserId: activeUserId });
+              await syncSettingsToFirestore({ uhdConfig: currentUhdCfg });
+            }
+          }
+
+          const tokenParam = activeToken ? `?X-Emby-Token=${encodeURIComponent(activeToken)}` : '';
           const [infoRes, countsRes, domainsRes] = await Promise.allSettled([
             fetch(`${cleanEmby}/emby/System/Info${tokenParam}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Info HTTP ${r.status}`)))),
             fetch(`${cleanEmby}/emby/Items/Counts${tokenParam}`).then((r) => (r.ok ? r.json() : null)),
@@ -1424,6 +1499,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           }
         } catch (err: any) {
           debugChunks.embyException = err?.message || String(err);
+          if (embyStatusEl) {
+            embyStatusEl.textContent = 'Emby 登录/连接失败';
+            embyStatusEl.className = 'text-lg font-semibold text-rose-500 mt-1';
+          }
+          if (embyCountsEl) embyCountsEl.textContent = String(err?.message || '');
         }
       }
 
@@ -1438,8 +1518,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const next: UhdConfig = {
         apiUrl: (uhdApiUrlInput?.value || '').trim(),
         apiToken: (uhdApiTokenInput?.value || '').trim(),
-        embyUrl: (uhdEmbyUrlInput?.value || '').trim().replace(/\/+$/, ''),
+        embyUrl: (uhdEmbyUrlInput?.value || DEFAULT_UHD_EMBY_URL).trim().replace(/\/+$/, ''),
         embyToken: (uhdEmbyTokenInput?.value || '').trim(),
+        embyUserId: currentUhdCfg.embyUserId || '',
+        username: (uhdUsernameInput?.value || '').trim(),
+        password: uhdPasswordInput?.value || '',
         proxyUrl: (uhdProxyUrlInput?.value || '').trim(),
         note: (uhdNoteInput?.value || '').trim(),
       };

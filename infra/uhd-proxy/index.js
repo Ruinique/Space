@@ -135,12 +135,61 @@ functions.http('uhdProxy', async (req, res) => {
       fetchUhdJson('/api/v1/subscriptions/domains', cookieHeader),
     ]);
 
+    const domains = Array.isArray(domainsRes?.data) ? domainsRes.data : [];
+    const embyBase = String(body.embyUrl || domains[0]?.domain || '').trim().replace(/\/+$/, '');
+    let emby = null;
+
+    if (embyBase) {
+      try {
+        const embyAuthRes = await fetch(`${embyBase}/emby/Users/AuthenticateByName`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': BROWSER_UA,
+            'X-Emby-Authorization': 'MediaBrowser Client="SpaceToolbox", Device="Web", DeviceId="space-toolbox-web", Version="1.0.0"',
+          },
+          body: JSON.stringify({ Username: username, Pw: password }),
+        });
+        if (!embyAuthRes.ok) {
+          throw new Error(`Emby HTTP ${embyAuthRes.status}`);
+        }
+        const embyAuth = await embyAuthRes.json();
+        const embyToken = embyAuth?.AccessToken || '';
+        const tokenQs = embyToken ? `?X-Emby-Token=${encodeURIComponent(embyToken)}` : '';
+        const [infoRes, countsRes] = await Promise.allSettled([
+          fetch(`${embyBase}/emby/System/Info${tokenQs}`, { headers: { 'User-Agent': BROWSER_UA } }).then((r) =>
+            r.ok ? r.json() : null
+          ),
+          fetch(`${embyBase}/emby/Items/Counts${tokenQs}`, { headers: { 'User-Agent': BROWSER_UA } }).then((r) =>
+            r.ok ? r.json() : null
+          ),
+        ]);
+        const info = infoRes.status === 'fulfilled' ? infoRes.value : null;
+        const counts = countsRes.status === 'fulfilled' ? countsRes.value : null;
+        emby = {
+          ok: true,
+          url: embyBase,
+          serverName: info?.ServerName || 'Emby 在线',
+          version: info?.Version || '',
+          movieCount: counts?.MovieCount ?? null,
+          seriesCount: counts?.SeriesCount ?? null,
+        };
+      } catch (embyErr) {
+        emby = {
+          ok: false,
+          url: embyBase,
+          error: embyErr?.message || 'Emby connection failed',
+        };
+      }
+    }
+
     res.status(200).json({
       ok: true,
       user: userRes?.data || null,
       subscription: subRes?.data || null,
       traffic: trafficRes?.data || null,
-      domains: Array.isArray(domainsRes?.data) ? domainsRes.data : [],
+      domains,
+      emby,
     });
   } catch (err) {
     console.error('[uhdProxy] error:', err);

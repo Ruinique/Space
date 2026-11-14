@@ -1304,10 +1304,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       let discoveredEmbyUrl = cfg.embyUrl.trim().replace(/\/+$/, '');
       let domainsRenderedByProxy = false;
+      let embyHandledByProxy = false;
 
       // 1. Fetch UHDNOW account / subscription via uhdProxy (preferred) or custom apiUrl
       if (cfg.proxyUrl.trim() && cfg.username.trim() && cfg.password) {
         if (daysEl) daysEl.textContent = '登录同步中...';
+        if (embyStatusEl) embyStatusEl.textContent = '连接中...';
         try {
           const idToken = await auth?.currentUser?.getIdToken();
           if (!idToken) throw new Error('请先使用管理员 Google 账号登录');
@@ -1320,6 +1322,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             body: JSON.stringify({
               username: cfg.username.trim(),
               password: cfg.password,
+              ...(discoveredEmbyUrl ? { embyUrl: discoveredEmbyUrl } : {}),
             }),
           });
           const payload = await res.json();
@@ -1399,6 +1402,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             });
             if (!discoveredEmbyUrl && domains[0]?.domain) {
               discoveredEmbyUrl = String(domains[0].domain).trim().replace(/\/+$/, '');
+            }
+          }
+
+          if (payload.emby && typeof payload.emby === 'object') {
+            embyHandledByProxy = true;
+            if (payload.emby.ok) {
+              if (embyStatusEl) {
+                embyStatusEl.textContent = payload.emby.serverName || 'Emby 在线';
+                embyStatusEl.className = 'text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-1';
+              }
+              if (embyCountsEl) {
+                const parts: string[] = [];
+                if (payload.emby.version) parts.push(`v${payload.emby.version}`);
+                if (payload.emby.movieCount !== null && payload.emby.movieCount !== undefined) parts.push(`电影 ${payload.emby.movieCount}`);
+                if (payload.emby.seriesCount !== null && payload.emby.seriesCount !== undefined) parts.push(`剧集 ${payload.emby.seriesCount}`);
+                embyCountsEl.textContent = parts.join(' · ') || payload.emby.url || 'Online';
+              }
+            } else {
+              if (embyStatusEl) {
+                embyStatusEl.textContent = 'Emby 连接失败';
+                embyStatusEl.className = 'text-lg font-semibold text-rose-500 mt-1';
+              }
+              if (embyCountsEl) embyCountsEl.textContent = String(payload.emby.error || '请检查线路');
             }
           }
         } catch (err: any) {
@@ -1489,7 +1515,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
 
       // 2. Authenticate with Emby (if needed) & fetch Server Info + Counts + ServerDomains
-      if (!discoveredEmbyUrl) {
+      if (embyHandledByProxy) {
+        // Already fetched server-side via uhdProxy
+      } else if (!discoveredEmbyUrl) {
         if (embyStatusEl) embyStatusEl.textContent = '未配置 Emby';
         if (embyCountsEl) embyCountsEl.textContent = '同步官网后将自动获取线路';
         if (!domainsRenderedByProxy) domainsBox?.classList.add('hidden');

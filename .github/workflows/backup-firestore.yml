@@ -1,0 +1,40 @@
+name: Backup Firestore to GCS
+
+on:
+  schedule:
+    # Weekly on Sunday at 03:00 UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    if: ${{ vars.FIRESTORE_BACKUP_BUCKET != '' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Keyless WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER || 'projects/622762685869/locations/global/workloadIdentityPools/github-pool/providers/github-provider' }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT || 'github-deployer@project-d5956722-3ab5-4c0f-be0.iam.gserviceaccount.com' }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Sync GCS Lifecycle Rule (Auto-delete snapshots > 30 days)
+        run: |
+          gcloud storage buckets update "gs://${{ vars.FIRESTORE_BACKUP_BUCKET }}" \
+            --lifecycle-file=infra/firestore-backup/lifecycle.json
+
+      - name: Export Firestore Snapshot
+        run: |
+          STAMP="$(date -u +%Y-%m-%d_%H%M%S)"
+          PROJECT_ID="${{ vars.GCP_PROJECT_ID || 'project-d5956722-3ab5-4c0f-be0' }}"
+          gcloud firestore export "gs://${{ vars.FIRESTORE_BACKUP_BUCKET }}/snapshots/${STAMP}" \
+            --project="$PROJECT_ID"

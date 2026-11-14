@@ -63,6 +63,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           Komari 探针监控
         </button>
         <button
+          id="tool-tab-billing"
+          type="button"
+          class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          GCP 月度账单
+        </button>
+        <button
           id="tool-tab-expense"
           type="button"
           class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
@@ -208,7 +215,81 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </section>
 
-      <!-- Tool 2: Reserved Slot for Expense Tracker -->
+      <!-- Tool 2: GCP Monthly Billing -->
+      <section id="tool-panel-billing" class="hidden space-y-4">
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
+                GCP 月度账单明细
+              </h2>
+              <p class="text-xs text-[#6c7883] mt-0.5">
+                通过 BigQuery Billing Export + Firebase ID Token 鉴权接口实时查询当月各服务费用
+              </p>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <button
+                id="billing-refresh-btn"
+                type="button"
+                class="px-3 py-1.5 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:opacity-85 transition-opacity cursor-pointer"
+              >
+                刷新账单
+              </button>
+              <a
+                href="https://console.cloud.google.com/billing/reports?project=project-d5956722-3ab5-4c0f-be0"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/10 text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                GCP Console ↗
+              </a>
+            </div>
+          </div>
+
+          <form id="billing-config-form" class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 flex flex-wrap items-end gap-3 text-xs">
+            <div class="flex-1 min-w-[220px]">
+              <label class="block text-[#6c7883] mb-1" for="billing-api-url">
+                Billing Cloud Function URL (infra/billing-api)
+              </label>
+              <input
+                id="billing-api-url"
+                type="url"
+                placeholder="https://us-central1-project-d5956722-3ab5-4c0f-be0.cloudfunctions.net/getMonthlyBilling"
+                class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+              />
+            </div>
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              保存并查询
+            </button>
+          </form>
+
+          <div id="billing-summary-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3 hidden">
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[11px] text-[#6c7883]">本月折后净费用</div>
+              <div id="billing-net-total" class="text-lg font-semibold text-slate-900 dark:text-[#f5f5f5] mt-1">$0.00</div>
+            </div>
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[11px] text-[#6c7883]">原价总计 (Gross)</div>
+              <div id="billing-gross-total" class="text-lg font-semibold text-slate-900 dark:text-[#f5f5f5] mt-1">$0.00</div>
+            </div>
+            <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5">
+              <div class="text-[11px] text-[#6c7883]">免费额度 / 抵扣 (Credits)</div>
+              <div id="billing-credits-total" class="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-1">$0.00</div>
+            </div>
+          </div>
+
+          <div id="billing-services-list" class="space-y-2 text-xs text-[#6c7883]">
+            <div class="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-5 text-center">
+              请先部署 <code>infra/billing-api</code> 并填入 Cloud Function URL；请求会自动携带你的管理员 Firebase ID Token。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tool 3: Reserved Slot for Expense Tracker -->
       <section id="tool-panel-expense" class="hidden">
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 space-y-3">
           <div class="flex items-center gap-2.5">
@@ -231,6 +312,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
   import {
     ADMIN_EMAIL,
+    auth,
     isFirebaseConfigured,
     onAuthChange,
     signInWithGoogle,
@@ -498,20 +580,114 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const workspaceEl = document.getElementById('tools-workspace');
 
     const tabKomari = document.getElementById('tool-tab-komari');
+    const tabBilling = document.getElementById('tool-tab-billing');
     const tabExpense = document.getElementById('tool-tab-expense');
     const panelKomari = document.getElementById('tool-panel-komari');
+    const panelBilling = document.getElementById('tool-panel-billing');
     const panelExpense = document.getElementById('tool-panel-expense');
 
-    const setActiveTool = (tool: 'komari' | 'expense') => {
+    const BILLING_URL_KEY = 'space_billing_api_url_v1';
+    const billingUrlInput = document.getElementById('billing-api-url') as HTMLInputElement | null;
+    const billingConfigForm = document.getElementById('billing-config-form') as HTMLFormElement | null;
+    const billingSummaryGrid = document.getElementById('billing-summary-grid');
+    const billingList = document.getElementById('billing-services-list');
+    const billingNetEl = document.getElementById('billing-net-total');
+    const billingGrossEl = document.getElementById('billing-gross-total');
+    const billingCreditsEl = document.getElementById('billing-credits-total');
+
+    if (billingUrlInput) {
+      billingUrlInput.value = localStorage.getItem(BILLING_URL_KEY) || '';
+    }
+
+    const fetchBillingReport = async () => {
+      const apiUrl = (localStorage.getItem(BILLING_URL_KEY) || '').trim();
+      if (!apiUrl || !billingList) return;
+      const user = auth?.currentUser;
+      if (!user) return;
+
+      billingList.innerHTML = `<div class="p-4 text-center text-xs text-[#6c7883]">正在查询 BigQuery 账单明细...</div>`;
+      try {
+        const idToken = await user.getIdToken();
+        const res = await fetch(apiUrl, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+
+        const cur = data.currency === 'USD' ? '$' : `${escapeHtml(data.currency || '')} `;
+        billingSummaryGrid?.classList.remove('hidden');
+        if (billingNetEl) billingNetEl.textContent = `${cur}${Number(data.netTotal || 0).toFixed(4)}`;
+        if (billingGrossEl) billingGrossEl.textContent = `${cur}${Number(data.grossTotal || 0).toFixed(4)}`;
+        if (billingCreditsEl) billingCreditsEl.textContent = `${cur}${Number(data.creditsTotal || 0).toFixed(4)}`;
+
+        const services = Array.isArray(data.services) ? data.services : [];
+        if (!services.length) {
+          billingList.innerHTML = `<div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-4 text-center text-xs text-[#6c7883]">本月暂无账单记录（若刚开启 BigQuery 导出，通常需等待数小时生成首张表）。</div>`;
+          return;
+        }
+
+        const maxVal = Math.max(...services.map((s: any) => Math.abs(Number(s.grossCost || s.netCost || 0))), 0.0001);
+        billingList.innerHTML = services
+          .map((s: any) => {
+            const net = Number(s.netCost || 0);
+            const gross = Number(s.grossCost || 0);
+            const credits = Number(s.credits || 0);
+            const pct = Math.min(100, Math.max(4, (Math.abs(gross || net) / maxVal) * 100));
+            return `
+              <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3 space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-medium text-slate-900 dark:text-[#f5f5f5]">${escapeHtml(s.service)}</span>
+                  <span class="font-mono text-slate-900 dark:text-[#f5f5f5]">${cur}${net.toFixed(4)}</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                  <div class="h-full bg-[#2481cc] dark:bg-[#3ea6ff]" style="width:${pct}%"></div>
+                </div>
+                <div class="flex justify-between text-[11px] text-[#6c7883]">
+                  <span>原价 ${cur}${gross.toFixed(4)}</span>
+                  <span>抵扣 ${cur}${credits.toFixed(4)}</span>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      } catch (err: any) {
+        billingList.innerHTML = `
+          <div class="rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50/60 dark:bg-rose-500/10 p-4 text-xs text-rose-700 dark:text-rose-300">
+            查询失败：${escapeHtml(err?.message || 'Unknown error')}
+          </div>`;
+      }
+    };
+
+    billingConfigForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = (billingUrlInput?.value || '').trim();
+      if (val) {
+        localStorage.setItem(BILLING_URL_KEY, val);
+        fetchBillingReport();
+      } else {
+        localStorage.removeItem(BILLING_URL_KEY);
+      }
+    });
+    document.getElementById('billing-refresh-btn')?.addEventListener('click', fetchBillingReport);
+
+    const setActiveTool = (tool: 'komari' | 'billing' | 'expense') => {
       const activeCls = 'px-4 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] transition-colors cursor-pointer';
       const inactiveCls = 'px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer';
       if (tabKomari) tabKomari.className = tool === 'komari' ? activeCls : inactiveCls;
+      if (tabBilling) tabBilling.className = tool === 'billing' ? activeCls : inactiveCls;
       if (tabExpense) tabExpense.className = tool === 'expense' ? activeCls : inactiveCls;
       panelKomari?.classList.toggle('hidden', tool !== 'komari');
+      panelBilling?.classList.toggle('hidden', tool !== 'billing');
       panelExpense?.classList.toggle('hidden', tool !== 'expense');
+      if (tool === 'billing') {
+        fetchBillingReport();
+      }
     };
 
     tabKomari?.addEventListener('click', () => setActiveTool('komari'));
+    tabBilling?.addEventListener('click', () => setActiveTool('billing'));
     tabExpense?.addEventListener('click', () => setActiveTool('expense'));
 
     const cfg = loadConfig();

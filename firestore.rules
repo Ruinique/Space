@@ -96,6 +96,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // 管理员私人工作箱配置（跨设备同步，仅管理员可读写）
+    match /admin_settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

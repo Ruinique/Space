@@ -322,9 +322,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
+  import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
   import {
     ADMIN_EMAIL,
     auth,
+    db,
     isFirebaseConfigured,
     onAuthChange,
     signInWithGoogle,
@@ -688,14 +690,63 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
     };
 
+    const syncSettingsToFirestore = async (patch: Record<string, unknown>) => {
+      if (!db || !auth?.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return;
+      try {
+        await setDoc(
+          doc(db, 'admin_settings', 'toolbox'),
+          { ...patch, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('[Toolbox] Failed to sync settings to Firestore:', err);
+      }
+    };
+
+    const loadSettingsFromFirestore = async () => {
+      if (!db || !auth?.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return;
+      try {
+        const snap = await getDoc(doc(db, 'admin_settings', 'toolbox'));
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+
+        if (data.komari && typeof data.komari === 'object') {
+          const merged: KomariConfig = {
+            baseUrl: typeof data.komari.baseUrl === 'string' ? data.komari.baseUrl : '',
+            apiPath: typeof data.komari.apiPath === 'string' && data.komari.apiPath ? data.komari.apiPath : '/api/nodes',
+            token: typeof data.komari.token === 'string' ? data.komari.token : '',
+            proxyUrl: typeof data.komari.proxyUrl === 'string' ? data.komari.proxyUrl : '',
+            mode: data.komari.mode === 'iframe' ? 'iframe' : 'api',
+          };
+          saveConfig(merged);
+          if (urlInput) urlInput.value = merged.baseUrl;
+          if (pathInput) pathInput.value = merged.apiPath;
+          if (tokenInput) tokenInput.value = merged.token;
+          if (proxyInput) proxyInput.value = merged.proxyUrl;
+          if (modeSelect) modeSelect.value = merged.mode;
+          if (merged.baseUrl) configForm?.classList.add('hidden');
+          applyKomariMode();
+        }
+
+        if (typeof data.billingApiUrl === 'string' && data.billingApiUrl.trim()) {
+          localStorage.setItem(BILLING_URL_KEY, data.billingApiUrl.trim());
+          if (billingUrlInput) billingUrlInput.value = data.billingApiUrl.trim();
+        }
+      } catch (err) {
+        console.warn('[Toolbox] Failed to load settings from Firestore:', err);
+      }
+    };
+
     billingConfigForm?.addEventListener('submit', (e) => {
       e.preventDefault();
       const val = (billingUrlInput?.value || '').trim();
       if (val) {
         localStorage.setItem(BILLING_URL_KEY, val);
+        syncSettingsToFirestore({ billingApiUrl: val });
         fetchBillingReport();
       } else {
         localStorage.removeItem(BILLING_URL_KEY);
+        syncSettingsToFirestore({ billingApiUrl: '' });
       }
     });
     document.getElementById('billing-refresh-btn')?.addEventListener('click', fetchBillingReport);
@@ -750,6 +801,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         mode: modeSelect?.value === 'iframe' ? 'iframe' : 'api',
       };
       saveConfig(next);
+      syncSettingsToFirestore({ komari: next });
       configForm.classList.add('hidden');
       applyKomariMode();
     });
@@ -804,6 +856,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       lockedEl?.classList.add('hidden');
       workspaceEl?.classList.remove('hidden');
       applyKomariMode();
+      loadSettingsFromFirestore();
     });
   }
 

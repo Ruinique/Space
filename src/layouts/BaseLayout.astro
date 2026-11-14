@@ -375,13 +375,25 @@ const currentPath = Astro.url.pathname;
         const mobileAdminLink = document.getElementById('mobile-nav-admin-link');
         const toolsLink = document.getElementById('nav-tools-link');
         const mobileToolsLink = document.getElementById('mobile-nav-tools-link');
+        const applyAdminNav = (isAdmin: boolean) => {
+          adminLink?.classList.toggle('hidden', !isAdmin);
+          mobileAdminLink?.classList.toggle('hidden', !isAdmin);
+          toolsLink?.classList.toggle('hidden', !isAdmin);
+          mobileToolsLink?.classList.toggle('hidden', !isAdmin);
+        };
+
+        // Instant restore from localStorage to avoid waiting for async Firebase Auth hydration
+        applyAdminNav(localStorage.getItem('space_is_admin') === '1');
+
         if (isFirebaseConfigured && (adminLink || mobileAdminLink || toolsLink || mobileToolsLink)) {
           unsubscribeNavAuth = onAuthChange((user) => {
             const isAdmin = Boolean(user && user.email === ADMIN_EMAIL);
-            adminLink?.classList.toggle('hidden', !isAdmin);
-            mobileAdminLink?.classList.toggle('hidden', !isAdmin);
-            toolsLink?.classList.toggle('hidden', !isAdmin);
-            mobileToolsLink?.classList.toggle('hidden', !isAdmin);
+            if (isAdmin) {
+              localStorage.setItem('space_is_admin', '1');
+            } else {
+              localStorage.removeItem('space_is_admin');
+            }
+            applyAdminNav(isAdmin);
           });
         }
 

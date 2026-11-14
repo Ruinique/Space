@@ -520,12 +520,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <form id="uhd-config-form" class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-4 space-y-3 text-xs">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="block space-y-1 sm:col-span-2">
-                <span class="text-[#6c7883]">Emby 服务器地址（默认按文档填写，如有专属线路可替换为「导入 Emby」地址）</span>
+                <span class="text-[#6c7883]">Emby 服务器地址（请从 uhdnow.com 后台「导入 Emby」复制你的专属线路地址）</span>
                 <input
                   id="uhd-emby-url"
                   type="url"
-                  value="https://emby.uhdnow.com"
-                  placeholder="https://emby.uhdnow.com"
+                  placeholder="https://你的专属线路.uhdnow.com"
                   class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
                 />
               </label>
@@ -1187,7 +1186,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       note: string;
     }
 
-    const DEFAULT_UHD_EMBY_URL = 'https://emby.uhdnow.com';
+    const DEFAULT_UHD_EMBY_URL = '';
     const UHD_CFG_KEY = 'space_uhd_config_v2';
     const uhdConfigForm = document.getElementById('uhd-config-form') as HTMLFormElement | null;
     const uhdApiUrlInput = document.getElementById('uhd-api-url') as HTMLInputElement | null;

@@ -63,6 +63,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           Komari 探针监控
         </button>
         <button
+          id="tool-tab-sub"
+          type="button"
+          class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          订阅分发与流量
+        </button>
+        <button
           id="tool-tab-billing"
           type="button"
           class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
@@ -301,7 +308,146 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </section>
 
-      <!-- Tool 3: Reserved Slot for Expense Tracker -->
+      <!-- Tool 3: Lightweight SubHub (Subscription & Traffic Monitor) -->
+      <section id="tool-panel-sub" class="hidden space-y-4">
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
+                订阅分发与流量监控 (SubHub)
+              </h2>
+              <p class="text-xs text-[#6c7883] mt-0.5">
+                轻量替代 Xboard：聚合上游机场/自建订阅、实时解析剩余流量与到期时间，一键下发统一订阅
+              </p>
+            </div>
+            <button
+              id="sub-refresh-btn"
+              type="button"
+              class="px-3 py-1.5 rounded-full text-xs bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] hover:opacity-85 transition-opacity cursor-pointer"
+            >
+              检测流量与节点
+            </button>
+          </div>
+
+          <!-- SubHub Endpoint & Token Config -->
+          <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 space-y-3 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[#6c7883] mb-1" for="sub-api-url">
+                  SubHub Cloud Function URL (infra/sub-hub)
+                </label>
+                <input
+                  id="sub-api-url"
+                  type="url"
+                  placeholder="https://us-central1-project-d5956722-3ab5-4c0f-be0.cloudfunctions.net/subHub"
+                  class="w-full rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                />
+              </div>
+              <div>
+                <label class="block text-[#6c7883] mb-1" for="sub-token-input">
+                  订阅访问密钥 (Sub Token)
+                </label>
+                <div class="flex gap-1.5">
+                  <input
+                    id="sub-token-input"
+                    type="text"
+                    placeholder="用于客户端拉取订阅的密钥"
+                    class="flex-1 rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+                  />
+                  <button
+                    id="sub-gen-token-btn"
+                    type="button"
+                    class="px-2.5 py-2 rounded-lg bg-white dark:bg-[#182533] text-[#6c7883] hover:text-[#2481cc] border border-slate-200/80 dark:border-white/10 cursor-pointer"
+                  >
+                    随机
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dispense Links -->
+            <div id="sub-links-box" class="hidden pt-2 border-t border-slate-200/70 dark:border-white/10 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-[#6c7883]">通用 Base64 订阅（Clash / Shadowrocket / v2rayN）：</span>
+                <button
+                  id="sub-copy-base64"
+                  type="button"
+                  class="px-2.5 py-1 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium cursor-pointer"
+                >
+                  复制 Base64 链接
+                </button>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-[#6c7883]">明文节点列表 (Raw URI)：</span>
+                <button
+                  id="sub-copy-raw"
+                  type="button"
+                  class="px-2.5 py-1 rounded-full bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-medium cursor-pointer"
+                >
+                  复制 Raw 链接
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upstream Subscriptions Manager -->
+          <div class="space-y-2.5 text-xs">
+            <div class="font-semibold text-slate-900 dark:text-[#f5f5f5]">上游订阅源</div>
+            <div id="sub-upstreams-list" class="space-y-2"></div>
+
+            <div class="flex flex-wrap gap-2 pt-1">
+              <input
+                id="sub-new-name"
+                type="text"
+                placeholder="名称（如 JP-A）"
+                class="w-32 rounded-lg bg-[#f1f4f8] dark:bg-[#0e1621] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+              />
+              <input
+                id="sub-new-url"
+                type="url"
+                placeholder="https://example.com/sub/..."
+                class="flex-1 min-w-[200px] rounded-lg bg-[#f1f4f8] dark:bg-[#0e1621] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+              />
+              <button
+                id="sub-add-upstream-btn"
+                type="button"
+                class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/15 cursor-pointer"
+              >
+                + 添加
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Nodes -->
+          <div class="space-y-1.5 text-xs">
+            <label class="block font-semibold text-slate-900 dark:text-[#f5f5f5]" for="sub-custom-nodes">
+              自定义节点（每行一条 vless:// / hy2:// / ss:// 等，可选）
+            </label>
+            <textarea
+              id="sub-custom-nodes"
+              rows="3"
+              placeholder="vless://..."
+              class="w-full rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3 font-mono text-[11px] text-slate-900 dark:text-[#f5f5f5] placeholder:text-[#6c7883] focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 text-xs">
+            <span id="sub-save-status" class="text-[#6c7883]">配置加密同步至私有 Firestore，不进入公开仓库。</span>
+            <button
+              id="sub-save-btn"
+              type="button"
+              class="px-4 py-2 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              保存全部订阅配置
+            </button>
+          </div>
+
+          <!-- Traffic & Node Telemetry Cards -->
+          <div id="sub-telemetry-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2"></div>
+        </div>
+      </section>
+
+      <!-- Tool 4: Reserved Slot for Expense Tracker -->
       <section id="tool-panel-expense" class="hidden">
         <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 space-y-3">
           <div class="flex items-center gap-2.5">
@@ -762,10 +908,246 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           localStorage.setItem(BILLING_URL_KEY, data.billingApiUrl.trim());
           if (billingUrlInput) billingUrlInput.value = data.billingApiUrl.trim();
         }
+
+        if (data.subHub && typeof data.subHub === 'object') {
+          applySubConfig(data.subHub);
+        }
       } catch (err) {
         console.warn('[Toolbox] Failed to load settings from Firestore:', err);
       }
     };
+
+    interface SubUpstream {
+      name: string;
+      url: string;
+      enabled: boolean;
+    }
+    interface SubConfig {
+      apiUrl: string;
+      subToken: string;
+      upstreams: SubUpstream[];
+      customNodes: string;
+    }
+
+    const SUB_STORAGE_KEY = 'space_subhub_config_v1';
+    const subApiInput = document.getElementById('sub-api-url') as HTMLInputElement | null;
+    const subTokenInput = document.getElementById('sub-token-input') as HTMLInputElement | null;
+    const subCustomInput = document.getElementById('sub-custom-nodes') as HTMLTextAreaElement | null;
+    const subUpstreamsEl = document.getElementById('sub-upstreams-list');
+    const subLinksBox = document.getElementById('sub-links-box');
+    const subTelemetryGrid = document.getElementById('sub-telemetry-grid');
+    const subSaveStatus = document.getElementById('sub-save-status');
+
+    let currentSubCfg: SubConfig = { apiUrl: '', subToken: '', upstreams: [], customNodes: '' };
+    try {
+      const raw = localStorage.getItem(SUB_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        currentSubCfg = {
+          apiUrl: typeof parsed.apiUrl === 'string' ? parsed.apiUrl : '',
+          subToken: typeof parsed.subToken === 'string' ? parsed.subToken : '',
+          upstreams: Array.isArray(parsed.upstreams) ? parsed.upstreams : [],
+          customNodes: typeof parsed.customNodes === 'string' ? parsed.customNodes : '',
+        };
+      }
+    } catch {
+      // ignore
+    }
+
+    const updateSubLinks = () => {
+      const api = (subApiInput?.value || '').trim().replace(/\/+$/, '');
+      const tok = (subTokenInput?.value || '').trim();
+      if (subLinksBox) {
+        subLinksBox.classList.toggle('hidden', !api || !tok);
+      }
+    };
+
+    const renderUpstreams = () => {
+      if (!subUpstreamsEl) return;
+      if (!currentSubCfg.upstreams.length) {
+        subUpstreamsEl.innerHTML = `<div class="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-3 text-center text-[#6c7883]">暂无上游订阅，可在下方添加。</div>`;
+        return;
+      }
+      subUpstreamsEl.innerHTML = currentSubCfg.upstreams
+        .map(
+          (u, idx) => `
+          <div class="flex items-center justify-between gap-2 rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] px-3 py-2">
+            <label class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+              <input type="checkbox" data-sub-toggle="${idx}" ${u.enabled !== false ? 'checked' : ''} class="accent-[#2481cc]" />
+              <span class="font-medium text-slate-900 dark:text-[#f5f5f5] shrink-0">${escapeHtml(u.name || `Sub #${idx + 1}`)}</span>
+              <span class="text-[#6c7883] truncate">${escapeHtml(u.url)}</span>
+            </label>
+            <button type="button" data-sub-del="${idx}" class="text-rose-500 hover:underline shrink-0 cursor-pointer">删除</button>
+          </div>`
+        )
+        .join('');
+
+      subUpstreamsEl.querySelectorAll<HTMLInputElement>('[data-sub-toggle]').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          const i = Number(cb.dataset.subToggle);
+          if (currentSubCfg.upstreams[i]) {
+            currentSubCfg.upstreams[i].enabled = cb.checked;
+          }
+        });
+      });
+      subUpstreamsEl.querySelectorAll<HTMLButtonElement>('[data-sub-del]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.subDel);
+          currentSubCfg.upstreams.splice(i, 1);
+          renderUpstreams();
+        });
+      });
+    };
+
+    const applySubConfig = (cfg: any) => {
+      currentSubCfg = {
+        apiUrl: typeof cfg.apiUrl === 'string' ? cfg.apiUrl : '',
+        subToken: typeof cfg.subToken === 'string' ? cfg.subToken : '',
+        upstreams: Array.isArray(cfg.upstreams) ? cfg.upstreams : [],
+        customNodes: typeof cfg.customNodes === 'string' ? cfg.customNodes : '',
+      };
+      localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(currentSubCfg));
+      if (subApiInput) subApiInput.value = currentSubCfg.apiUrl;
+      if (subTokenInput) subTokenInput.value = currentSubCfg.subToken;
+      if (subCustomInput) subCustomInput.value = currentSubCfg.customNodes;
+      renderUpstreams();
+      updateSubLinks();
+    };
+
+    applySubConfig(currentSubCfg);
+
+    document.getElementById('sub-gen-token-btn')?.addEventListener('click', () => {
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      const tok = Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
+      if (subTokenInput) subTokenInput.value = tok;
+      updateSubLinks();
+    });
+
+    document.getElementById('sub-add-upstream-btn')?.addEventListener('click', () => {
+      const nameEl = document.getElementById('sub-new-name') as HTMLInputElement | null;
+      const urlEl = document.getElementById('sub-new-url') as HTMLInputElement | null;
+      const url = (urlEl?.value || '').trim();
+      if (!url) return;
+      const name = (nameEl?.value || '').trim() || new URL(url).hostname;
+      currentSubCfg.upstreams.push({ name, url, enabled: true });
+      if (nameEl) nameEl.value = '';
+      if (urlEl) urlEl.value = '';
+      renderUpstreams();
+    });
+
+    const saveSubConfig = async () => {
+      currentSubCfg.apiUrl = (subApiInput?.value || '').trim().replace(/\/+$/, '');
+      currentSubCfg.subToken = (subTokenInput?.value || '').trim();
+      currentSubCfg.customNodes = subCustomInput?.value || '';
+      localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(currentSubCfg));
+      updateSubLinks();
+      await syncSettingsToFirestore({ subHub: currentSubCfg });
+      if (subSaveStatus) subSaveStatus.textContent = `已保存并同步到云端 (${new Date().toLocaleTimeString()})`;
+    };
+
+    document.getElementById('sub-save-btn')?.addEventListener('click', saveSubConfig);
+
+    const copySubLink = async (format: 'base64' | 'raw', btnId: string) => {
+      const api = (subApiInput?.value || '').trim().replace(/\/+$/, '');
+      const tok = (subTokenInput?.value || '').trim();
+      if (!api || !tok) return;
+      const link = `${api}?token=${encodeURIComponent(tok)}&format=${format}`;
+      await navigator.clipboard.writeText(link);
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = '已复制 ✓';
+        setTimeout(() => {
+          btn.textContent = old;
+        }, 1500);
+      }
+    };
+    document.getElementById('sub-copy-base64')?.addEventListener('click', () => copySubLink('base64', 'sub-copy-base64'));
+    document.getElementById('sub-copy-raw')?.addEventListener('click', () => copySubLink('raw', 'sub-copy-raw'));
+
+    const inspectSubTraffic = async () => {
+      const api = (subApiInput?.value || '').trim().replace(/\/+$/, '');
+      if (!api || !subTelemetryGrid) return;
+      const user = auth?.currentUser;
+      if (!user) return;
+
+      subTelemetryGrid.innerHTML = `<div class="sm:col-span-2 p-4 text-center text-xs text-[#6c7883]">正在拉取上游订阅流量与节点明细...</div>`;
+      try {
+        const idToken = await user.getIdToken();
+        const res = await fetch(api, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ upstreams: currentSubCfg.upstreams }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+        const list = Array.isArray(data.upstreams) ? data.upstreams : [];
+        if (!list.length) {
+          subTelemetryGrid.innerHTML = `<div class="sm:col-span-2 rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-[#6c7883]">暂无上游订阅可检测。</div>`;
+          return;
+        }
+
+        subTelemetryGrid.innerHTML = list
+          .map((u: any) => {
+            const ui = u.userinfo;
+            const used = ui ? (ui.upload || 0) + (ui.download || 0) : 0;
+            const total = ui?.total || 0;
+            const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+            const expireStr =
+              ui?.expire > 0 ? new Date(ui.expire * 1000).toLocaleDateString() : '长期 / 未知';
+            const names = Array.isArray(u.names) ? u.names : [];
+            return `
+              <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 space-y-2 border border-slate-200/60 dark:border-white/5 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-2 h-2 rounded-full shrink-0 ${u.ok ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+                    <span class="font-semibold text-slate-900 dark:text-[#f5f5f5] truncate">${escapeHtml(u.name)}</span>
+                  </div>
+                  <span class="text-[11px] text-[#6c7883]">${u.ok ? `${u.nodeCount || 0} 节点` : escapeHtml(u.error || 'Error')}</span>
+                </div>
+
+                ${
+                  ui
+                    ? `
+                  <div>
+                    <div class="flex justify-between text-[11px] text-[#6c7883] mb-0.5">
+                      <span>已用 ${formatBytes(used)}</span>
+                      <span>总量 ${total > 0 ? formatBytes(total) : '不限'}</span>
+                    </div>
+                    <div class="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                      <div class="h-full bg-[#2481cc] dark:bg-[#3ea6ff]" style="width:${pct}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[11px] text-[#6c7883] mt-1">
+                      <span>↑ ${formatBytes(ui.upload || 0)} · ↓ ${formatBytes(ui.download || 0)}</span>
+                      <span>到期 ${expireStr}</span>
+                    </div>
+                  </div>`
+                    : `<div class="text-[11px] text-[#6c7883]">未返回 Subscription-Userinfo 流量头</div>`
+                }
+
+                ${
+                  names.length
+                    ? `<details class="text-[11px] text-[#6c7883]">
+                        <summary class="cursor-pointer hover:text-[#2481cc]">查看节点列表 (${names.length})</summary>
+                        <ul class="mt-1.5 space-y-0.5 max-h-28 overflow-y-auto pl-2 border-l border-slate-300 dark:border-white/10">
+                          ${names.map((n: string) => `<li class="truncate">${escapeHtml(n)}</li>`).join('')}
+                        </ul>
+                      </details>`
+                    : ''
+                }
+              </div>`;
+          })
+          .join('');
+      } catch (err: any) {
+        subTelemetryGrid.innerHTML = `<div class="sm:col-span-2 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50/60 dark:bg-rose-500/10 p-4 text-xs text-rose-700 dark:text-rose-300">检测失败：${escapeHtml(err?.message || 'Unknown error')}</div>`;
+      }
+    };
+    document.getElementById('sub-refresh-btn')?.addEventListener('click', inspectSubTraffic);
 
     billingConfigForm?.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -781,21 +1163,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     });
     document.getElementById('billing-refresh-btn')?.addEventListener('click', fetchBillingReport);
 
-    const setActiveTool = (tool: 'komari' | 'billing' | 'expense') => {
+    const tabSub = document.getElementById('tool-tab-sub');
+    const panelSub = document.getElementById('tool-panel-sub');
+
+    const setActiveTool = (tool: 'komari' | 'sub' | 'billing' | 'expense') => {
       const activeCls = 'px-4 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] transition-colors cursor-pointer';
       const inactiveCls = 'px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer';
       if (tabKomari) tabKomari.className = tool === 'komari' ? activeCls : inactiveCls;
+      if (tabSub) tabSub.className = tool === 'sub' ? activeCls : inactiveCls;
       if (tabBilling) tabBilling.className = tool === 'billing' ? activeCls : inactiveCls;
       if (tabExpense) tabExpense.className = tool === 'expense' ? activeCls : inactiveCls;
       panelKomari?.classList.toggle('hidden', tool !== 'komari');
+      panelSub?.classList.toggle('hidden', tool !== 'sub');
       panelBilling?.classList.toggle('hidden', tool !== 'billing');
       panelExpense?.classList.toggle('hidden', tool !== 'expense');
       if (tool === 'billing') {
         fetchBillingReport();
+      } else if (tool === 'sub') {
+        inspectSubTraffic();
       }
     };
 
     tabKomari?.addEventListener('click', () => setActiveTool('komari'));
+    tabSub?.addEventListener('click', () => setActiveTool('sub'));
     tabBilling?.addEventListener('click', () => setActiveTool('billing'));
     tabExpense?.addEventListener('click', () => setActiveTool('expense'));
 

@@ -81,7 +81,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           type="button"
           class="px-4 py-1.5 rounded-full text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
         >
-          记账助手 (Soon)
+          服务与续费
         </button>
       </div>
 
@@ -447,20 +447,115 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </section>
 
-      <!-- Tool 4: Reserved Slot for Expense Tracker -->
-      <section id="tool-panel-expense" class="hidden">
-        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-6 space-y-3">
-          <div class="flex items-center gap-2.5">
-            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
-              Planned
-            </span>
-            <h2 data-i18n="tools.expenseTitle" class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
-              记账助手（即将上线）
-            </h2>
+      <!-- Tool 4: Services & Monthly Renewals (UHDNOW + Recurring Tracker) -->
+      <section id="tool-panel-expense" class="hidden space-y-4">
+        <!-- UHDNOW Quick Card -->
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
+                UHDNOW · 4K Emby 媒体库
+              </h2>
+              <p class="text-xs text-[#6c7883] mt-0.5">
+                直达个人影音库与客户端线路备忘（仅管理员可见，跨设备同步）
+              </p>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <a
+                href="https://www.uhdnow.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3.5 py-1.5 rounded-full bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 transition-opacity"
+              >
+                打开 UHDNOW ↗
+              </a>
+              <a
+                href="https://docs.uhdnow.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/10 text-[#6c7883] hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                文档 ↗
+              </a>
+            </div>
           </div>
-          <p data-i18n="tools.expenseDesc" class="text-sm text-[#6c7883] leading-relaxed">
-            预留工具位：后续可接入 Firestore 私人账本，支持快速记账、月度统计与分类预算。
-          </p>
+
+          <div class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 space-y-2 text-xs">
+            <label class="block text-[#6c7883]" for="uhd-note-input">
+              Emby 线路 / 账号备忘（如服务器地址、端口、套餐备注，方便在 Infuse / Emby 客户端快速复制）
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <input
+                id="uhd-note-input"
+                type="text"
+                placeholder="例如：emby.uhdnow.com · 443 · China/Global"
+                class="flex-1 min-w-[200px] rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#2481cc]/40"
+              />
+              <button
+                id="uhd-note-save-btn"
+                type="button"
+                class="px-3.5 py-2 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] font-medium hover:opacity-85 cursor-pointer"
+              >
+                保存备忘
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Renewals & Subscriptions Tracker -->
+        <div class="rounded-2xl bg-white dark:bg-[#182533] shadow-[0_1px_2px_rgba(0,0,0,0.06)] p-4 sm:p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-[#f5f5f5]">
+                月度续费与服务账本
+              </h2>
+              <p class="text-xs text-[#6c7883] mt-0.5">
+                记录每月固定订阅（UHDNOW、VPS、机场等），到期倒计时与一键顺延 1 个月
+              </p>
+            </div>
+            <div class="text-xs font-medium px-3 py-1.5 rounded-full bg-[#f1f4f8] dark:bg-[#0e1621] text-slate-900 dark:text-[#f5f5f5]">
+              月固定合计：<span id="renewals-monthly-total">$0.00</span>
+            </div>
+          </div>
+
+          <div id="renewals-list" class="space-y-2 text-xs"></div>
+
+          <form id="renewal-add-form" class="rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] p-3.5 grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+            <input
+              id="renewal-name"
+              type="text"
+              required
+              placeholder="服务名（如 UHDNOW）"
+              class="rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+            />
+            <input
+              id="renewal-url"
+              type="url"
+              placeholder="网址（可选）"
+              class="rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+            />
+            <input
+              id="renewal-price"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              placeholder="月费 (USD)"
+              class="rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+            />
+            <input
+              id="renewal-date"
+              type="date"
+              required
+              class="rounded-lg bg-white dark:bg-[#182533] px-3 py-2 text-slate-900 dark:text-[#f5f5f5] border border-slate-200/80 dark:border-white/10 focus:outline-none"
+            />
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-lg bg-[#2481cc] dark:bg-[#3ea6ff] text-white dark:text-[#0e1621] font-medium hover:opacity-90 cursor-pointer"
+            >
+              + 添加记录
+            </button>
+          </form>
         </div>
       </section>
     </div>
@@ -912,10 +1007,166 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (data.subHub && typeof data.subHub === 'object') {
           applySubConfig(data.subHub);
         }
+
+        if (typeof data.uhdNote === 'string') {
+          localStorage.setItem(UHD_NOTE_KEY, data.uhdNote);
+          if (uhdNoteInput) uhdNoteInput.value = data.uhdNote;
+        }
+
+        if (Array.isArray(data.renewals)) {
+          renewals = data.renewals;
+          localStorage.setItem(RENEWALS_KEY, JSON.stringify(renewals));
+          renderRenewals();
+        }
       } catch (err) {
         console.warn('[Toolbox] Failed to load settings from Firestore:', err);
       }
     };
+
+    interface RenewalItem {
+      name: string;
+      url: string;
+      price: number;
+      nextDate: string;
+    }
+
+    const UHD_NOTE_KEY = 'space_uhd_note_v1';
+    const RENEWALS_KEY = 'space_renewals_v1';
+    const uhdNoteInput = document.getElementById('uhd-note-input') as HTMLInputElement | null;
+    const renewalsListEl = document.getElementById('renewals-list');
+    const renewalsTotalEl = document.getElementById('renewals-monthly-total');
+
+    if (uhdNoteInput) {
+      uhdNoteInput.value = localStorage.getItem(UHD_NOTE_KEY) || '';
+    }
+
+    document.getElementById('uhd-note-save-btn')?.addEventListener('click', async () => {
+      const val = (uhdNoteInput?.value || '').trim();
+      localStorage.setItem(UHD_NOTE_KEY, val);
+      await syncSettingsToFirestore({ uhdNote: val });
+      const btn = document.getElementById('uhd-note-save-btn');
+      if (btn) {
+        btn.textContent = '已保存 ✓';
+        setTimeout(() => {
+          btn.textContent = '保存备忘';
+        }, 1500);
+      }
+    });
+
+    const defaultNextMonthDate = () => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 1);
+      return d.toISOString().slice(0, 10);
+    };
+
+    let renewals: RenewalItem[] = [
+      { name: 'UHDNOW (Emby)', url: 'https://www.uhdnow.com/', price: 1.2, nextDate: defaultNextMonthDate() },
+    ];
+    try {
+      const raw = localStorage.getItem(RENEWALS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) renewals = parsed;
+      }
+    } catch {
+      // ignore
+    }
+
+    const saveRenewals = () => {
+      localStorage.setItem(RENEWALS_KEY, JSON.stringify(renewals));
+      syncSettingsToFirestore({ renewals });
+      renderRenewals();
+    };
+
+    const renderRenewals = () => {
+      if (!renewalsListEl) return;
+      const total = renewals.reduce((acc, r) => acc + (Number(r.price) || 0), 0);
+      if (renewalsTotalEl) renewalsTotalEl.textContent = `$${total.toFixed(2)}`;
+
+      if (!renewals.length) {
+        renewalsListEl.innerHTML = `<div class="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-[#6c7883]">暂无续费记录，可在下方添加。</div>`;
+        return;
+      }
+
+      const todayMs = new Date().setHours(0, 0, 0, 0);
+      renewalsListEl.innerHTML = renewals
+        .map((r, idx) => {
+          const targetMs = new Date(r.nextDate).setHours(0, 0, 0, 0);
+          const daysLeft = Number.isFinite(targetMs) ? Math.ceil((targetMs - todayMs) / 86400000) : 0;
+          const badgeCls =
+            daysLeft <= 3
+              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+              : daysLeft <= 7
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+          const daysLabel = daysLeft < 0 ? `已过期 ${Math.abs(daysLeft)} 天` : daysLeft === 0 ? '今天到期' : `剩余 ${daysLeft} 天`;
+
+          return `
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#f1f4f8] dark:bg-[#0e1621] px-3.5 py-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${
+                  r.url
+                    ? `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="font-medium text-[#2481cc] dark:text-[#3ea6ff] hover:underline truncate">${escapeHtml(r.name)} ↗</a>`
+                    : `<span class="font-medium text-slate-900 dark:text-[#f5f5f5] truncate">${escapeHtml(r.name)}</span>`
+                }
+                <span class="px-2 py-0.5 rounded-full text-[11px] ${badgeCls}">${daysLabel}</span>
+              </div>
+              <div class="flex items-center gap-3 text-[11px] text-[#6c7883]">
+                <span class="font-mono text-slate-900 dark:text-[#f5f5f5]">$${Number(r.price || 0).toFixed(2)}/月</span>
+                <span>${escapeHtml(r.nextDate)}</span>
+                <button type="button" data-renew-bump="${idx}" class="px-2 py-0.5 rounded-full bg-[#2481cc]/10 text-[#2481cc] dark:bg-[#3ea6ff]/15 dark:text-[#3ea6ff] cursor-pointer">+1月</button>
+                <button type="button" data-renew-del="${idx}" class="text-rose-500 hover:underline cursor-pointer">删除</button>
+              </div>
+            </div>`;
+        })
+        .join('');
+
+      renewalsListEl.querySelectorAll<HTMLButtonElement>('[data-renew-bump]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.renewBump);
+          const item = renewals[i];
+          if (!item) return;
+          const d = new Date(item.nextDate || Date.now());
+          d.setMonth(d.getMonth() + 1);
+          item.nextDate = d.toISOString().slice(0, 10);
+          saveRenewals();
+        });
+      });
+
+      renewalsListEl.querySelectorAll<HTMLButtonElement>('[data-renew-del]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.renewDel);
+          renewals.splice(i, 1);
+          saveRenewals();
+        });
+      });
+    };
+
+    const renewalDateInput = document.getElementById('renewal-date') as HTMLInputElement | null;
+    if (renewalDateInput && !renewalDateInput.value) {
+      renewalDateInput.value = defaultNextMonthDate();
+    }
+    renderRenewals();
+
+    document.getElementById('renewal-add-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nameEl = document.getElementById('renewal-name') as HTMLInputElement | null;
+      const urlEl = document.getElementById('renewal-url') as HTMLInputElement | null;
+      const priceEl = document.getElementById('renewal-price') as HTMLInputElement | null;
+      const dateEl = document.getElementById('renewal-date') as HTMLInputElement | null;
+      const name = (nameEl?.value || '').trim();
+      if (!name) return;
+      renewals.push({
+        name,
+        url: (urlEl?.value || '').trim(),
+        price: Number(priceEl?.value || 0),
+        nextDate: dateEl?.value || defaultNextMonthDate(),
+      });
+      if (nameEl) nameEl.value = '';
+      if (urlEl) urlEl.value = '';
+      if (priceEl) priceEl.value = '';
+      saveRenewals();
+    });
 
     interface SubUpstream {
       name: string;

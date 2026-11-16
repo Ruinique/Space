@@ -51,6 +51,21 @@ functions.http('getMonthlyBilling', async (req, res) => {
       return res.status(500).json({ error: 'GCP_PROJECT env var not configured' });
     }
 
+    const [tables] = await bigquery.dataset(BILLING_DATASET).getTables();
+    const tableIds = tables.map((t) => t.id || '');
+    const hasStandard = tableIds.some((id) => id.startsWith('gcp_billing_export_v1_'));
+    const hasResource = tableIds.some((id) => id.startsWith('gcp_billing_export_resource_v1_'));
+
+    if (!hasStandard && !hasResource) {
+      return res.status(404).json({
+        error:
+          `Dataset "${BILLING_DATASET}" 中尚无账单导出表（当前表: ${tableIds.join(', ') || '空'}）。` +
+          `请前往 GCP Console → Billing → Billing export → Standard usage cost，选择项目 ${PROJECT_ID} 与数据集 ${BILLING_DATASET} 并保存开启导出（开启后首次写入需数小时）。`,
+      });
+    }
+
+    const tableWildcard = hasStandard ? 'gcp_billing_export_v1_*' : 'gcp_billing_export_resource_v1_*';
+
     const query = `
       SELECT
         service.description AS service,
@@ -58,7 +73,7 @@ functions.http('getMonthlyBilling', async (req, res) => {
         ROUND(SUM(cost), 4) AS gross_cost,
         ROUND(SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) c), 0)), 4) AS credits,
         ROUND(SUM(cost) + SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) c), 0)), 4) AS net_cost
-      FROM \`${PROJECT_ID}.${BILLING_DATASET}.gcp_billing_export_v1_*\`
+      FROM \`${PROJECT_ID}.${BILLING_DATASET}.${tableWildcard}\`
       WHERE project.id = @projectId
         AND invoice.month = FORMAT_DATE('%Y%m', CURRENT_DATE())
       GROUP BY service, currency
